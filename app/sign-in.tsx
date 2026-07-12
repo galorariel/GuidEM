@@ -15,6 +15,7 @@ export default function SignIn() {
     setLoading(true);
     try {
       await signIn(email, password);
+      router.replace("/(tabs)");
     } catch (err: any) {
       console.error("Sign in error", err);
       Alert.alert("Sign in failed", err?.message || "Check email/password");

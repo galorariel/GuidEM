@@ -4,7 +4,7 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, Image } fr
 import CustomButton from "../components/CustomButton";
 import CustomInput from "../components/CustomInput";
 import { useAuth } from "../hooks/AuthContext";
-import { createUserProfile } from "../services/appwrite";
+import { upsertProfile } from "../services/supabase";
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -19,15 +19,16 @@ export default function SignUp() {
     setLoading(true);
     try {
       const name = username.trim() || "Student";
-      const currentAccount = await signUp(email, password, name);
-
-      await createUserProfile(currentAccount.$id, {
-        username: name,
-        role: role.trim(),
-        school: school.trim(),
-      });
-      
-      router.replace(`/questionnare?name=${encodeURIComponent(name)}`);
+      const created = await signUp(email, password, name);
+      if (created) {
+        // profile row is auto-created by the DB trigger; fill in extra fields
+        await upsertProfile(created.id, {
+          full_name: name,
+          role: role.trim(),
+          school: school.trim(),
+        });
+      }
+      router.replace("/(tabs)");
     } catch (err: any) {
       console.error("Sign up error", err);
       Alert.alert("Sign up failed", err?.message || "Check your input");
