@@ -241,7 +241,9 @@ export async function addSaved(
     .from("saved")
     .upsert(
       { user_id: userId, item_type: itemType, item_id: itemId },
-      { onConflict: "user_id,item_type,item_id" }
+      // ignoreDuplicates -> ON CONFLICT DO NOTHING (idempotent add); the `saved`
+      // table has no RLS update policy, so we must avoid the UPDATE arm.
+      { onConflict: "user_id,item_type,item_id", ignoreDuplicates: true }
     );
   if (error) {
     console.error("addSaved", error);
