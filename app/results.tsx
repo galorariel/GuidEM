@@ -7,14 +7,8 @@ import CustomButton from "../components/CustomButton";
 import CustomInput from "../components/CustomInput";
 import { activities, type Category } from "../data/activities";
 import { careers } from "../data/careers";
-import { COL_SAVED, DB_ID, ID, Permission, Query, Role, databases, getMe } from "../services/appwrite";
-
-type SavedDoc = {
-  $id: string;
-  userId: string;
-  itemType: string ;
-  itemId: string;
-};
+import { useAuth } from "../hooks/AuthContext";
+import { addSaved, getSavedActivityIds, removeSaved } from "../services/supabase";
 
 export default function Results() {
   const params = useLocalSearchParams<{ query?: string }>();
@@ -40,47 +34,22 @@ export default function Results() {
     "university visit": "University Visit",
   };
 
-  const [meId, setMeId] = useState<string | null>(null);
-  const [savedDocs, setSavedDocs] = useState<SavedDoc[]>([]);
+  const { user } = useAuth();
+  const [savedIds, setSavedIds] = useState<string[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
 
   // Load user + saved list
   useEffect(() => {
     (async () => {
-      try {
-        const me = await getMe();
-
-        if (!me) {
-          setMeId(null);
-          setSavedDocs([]);
-          setLoadingSaved(false);
-          return;
-        }
-
-        setMeId(me.$id);
-
-        const res = await databases.listDocuments(DB_ID, COL_SAVED, [
-          Query.equal("userId", me.$id),
-          Query.equal("itemType", "activity"),
-          Query.limit(500),
-        ]);
-
-        setSavedDocs(res.documents as unknown as SavedDoc[]);
-      } catch (e: any) {
-        // Unauthorized here usually means collection permissions are not configured yet.
-        if (e?.code === 401 || e?.code === 403) {
-          setSavedDocs([]);
-          return;
-        }
-        console.error(e);
-        Alert.alert("Error", "Failed to load saved items.");
-      } finally {
+      if (!user) {
+        setSavedIds([]);
         setLoadingSaved(false);
+        return;
       }
+      setSavedIds(await getSavedActivityIds(user.id));
+      setLoadingSaved(false);
     })();
-  }, []);
-
-  const savedIds = useMemo(() => savedDocs.map((d) => d.itemId), [savedDocs]);
+  }, [user]);
 
   const parsedMaxBudget = useMemo(() => {
     if (maxBudget.trim() === "") return null;
@@ -170,43 +139,20 @@ export default function Results() {
     setCategory((prev) => (prev === c ? "" : c));
 
   const toggleSave = async (activityId: string) => {
-    const me = await getMe();
-
-    if (!me) {
+    if (!user) {
       Alert.alert("Not signed in", "Please sign in first.");
       router.replace("/sign-in");
       return;
     }
-
     try {
-      const existing = savedDocs.find((d) => d.itemId === activityId);
-      if (existing) {
-        await databases.deleteDocument(DB_ID, COL_SAVED, existing.$id);
-        setSavedDocs((prev) => prev.filter((d) => d.$id !== existing.$id));
+      if (savedIds.includes(activityId)) {
+        await removeSaved(user.id, activityId);
+        setSavedIds((prev) => prev.filter((id) => id !== activityId));
       } else {
-        const created = await databases.createDocument(
-          DB_ID,
-          COL_SAVED,
-          ID.unique(),
-          {
-            userId: me.$id,
-            itemType: "activity",
-            itemId: activityId,
-          },
-          [
-            Permission.read(Role.user(me.$id)),
-            Permission.update(Role.user(me.$id)),
-            Permission.delete(Role.user(me.$id)),
-          ]
-        );
-
-        setSavedDocs((prev) => [...prev, created as unknown as SavedDoc]);
+        await addSaved(user.id, activityId);
+        setSavedIds((prev) => [...prev, activityId]);
       }
-    } catch (e: any) {
-      if (e?.code === 401 || e?.code === 403) {
-        Alert.alert("Permissions", "Please enable read/write permissions for the saved collection in Appwrite.");
-        return;
-      }
+    } catch (e) {
       console.error(e);
       Alert.alert("Error", "Could not update saved list.");
     }
@@ -241,7 +187,7 @@ export default function Results() {
             <ActivityCard
               item={item.item}
               isSaved={savedIds.includes(item.item.id)}
-              onToggleSave={meId ? () => toggleSave(item.item.id) : undefined}
+              onToggleSave={user ? () => toggleSave(item.item.id) : undefined}
               onPress={() => router.push(`/detail?id=${item.item.id}`)}
             />
           ) : (

@@ -3,116 +3,46 @@ import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import CustomButton from "../components/CustomButton";
 import { activities, type Activity } from "../data/activities";
-import { COL_SAVED, DB_ID, ID, Permission, Query, Role, databases, getMe } from "../services/appwrite";
-
-type SavedDoc = {
-  $id: string;
-  userId: string;
-  itemType: "activity";
-  itemId: string;
-};
+import { useAuth } from "../hooks/AuthContext";
+import { addSaved, getSavedActivityIds, removeSaved } from "../services/supabase";
 
 export default function Detail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const activity = activities.find((item: Activity) => item.id === String(id));
 
   const [loading, setLoading] = useState(true);
-  const [meId, setMeId] = useState<string | null>(null);
-  const [savedDocId, setSavedDocId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     (async () => {
-      try {
-        const me = await getMe();
-        if (!me) {
-          setMeId(null);
-          setSavedDocId(null);
-          setLoading(false);
-          return;
-        }
-
-        setMeId(me.$id);
-
-        if (!activity) {
-          setLoading(false);
-          return;
-        }
-
-        const res = await databases.listDocuments(DB_ID, COL_SAVED, [
-          Query.equal("userId", me.$id),
-          Query.equal("itemType", "activity"),
-          Query.equal("itemId", activity.id),
-          Query.limit(1),
-        ]);
-
-        const doc = res.documents?.[0] as unknown as SavedDoc | undefined;
-        setSavedDocId(doc ? doc.$id : null);
-      } catch (e) {
-        console.error(e);
-        Alert.alert("Error", "Failed to load save status.");
-      } finally {
+      if (!user || !activity) {
         setLoading(false);
+        return;
       }
+      const ids = await getSavedActivityIds(user.id);
+      setIsSaved(ids.includes(activity.id));
+      setLoading(false);
     })();
-  }, [id]);
+  }, [id, user]);
 
-  const saveActivity = async () => {
+  const toggleSave = async () => {
     if (!activity) return;
-
-    const me = await getMe();
-    if (!me) {
+    if (!user) {
       Alert.alert("Not signed in", "Please sign in first.");
       return;
     }
-
     try {
-      const res = await databases.listDocuments(DB_ID, COL_SAVED, [
-        Query.equal("userId", me.$id),
-        Query.equal("itemId", activity.id),
-        Query.limit(1),
-      ]);
-
-      if (res.documents.length > 0) {
-        const existing = res.documents[0] as unknown as SavedDoc;
-        setSavedDocId(existing.$id);
-        Alert.alert("Already saved", "This activity is already in Saved.");
-        return;
+      if (isSaved) {
+        await removeSaved(user.id, activity.id);
+        setIsSaved(false);
+      } else {
+        await addSaved(user.id, activity.id);
+        setIsSaved(true);
       }
-
-      const created = await databases.createDocument(
-        DB_ID,
-        COL_SAVED,
-        ID.unique(),
-        {
-          userId: me.$id,
-          itemType: "activity",
-          itemId: activity.id,
-        },
-        [
-          Permission.read(Role.user(me.$id)),
-          Permission.update(Role.user(me.$id)),
-          Permission.delete(Role.user(me.$id)),
-        ]
-      );
-
-      setSavedDocId((created as any).$id);
-      Alert.alert("Saved", "Added to your Saved list.");
     } catch (e) {
       console.error(e);
-      Alert.alert("Error", "Could not save this activity.");
-    }
-  };
-
-  const unsaveActivity = async () => {
-    if (!savedDocId) return;
-
-    try {
-      await databases.deleteDocument(DB_ID, COL_SAVED, savedDocId);
-      setSavedDocId(null);
-      Alert.alert("Removed", "Removed from Saved.");
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Error", "Could not remove this activity.");
+      Alert.alert("Error", "Could not update saved list.");
     }
   };
 
@@ -123,8 +53,6 @@ export default function Detail() {
       </View>
     );
   }
-
-  const isSaved = !!savedDocId;
 
   return (
     <View style={styles.container}>
@@ -149,8 +77,8 @@ export default function Detail() {
 
       <CustomButton
         title={loading ? "Loading..." : isSaved ? "Unsave" : "Save"}
-        onPress={isSaved ? unsaveActivity : saveActivity}
-        disabled={loading || !meId}
+        onPress={toggleSave}
+        disabled={loading || !user}
       />
 
       <CustomButton title="Get Directions (Coming Soon)" onPress={() => {}} />
