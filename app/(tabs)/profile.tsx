@@ -1,75 +1,45 @@
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import CustomButton from "../../components/CustomButton";
-import { account, getMe, getQuestionnaire, getUserProfile } from "../../services/appwrite";
+import { useAuth } from "../../hooks/AuthContext";
 
 export default function Profile() {
- const [name, setName] = useState("Student");
- const [email, setEmail] = useState<string>("-");
- const [userId, setUserId] = useState<string>("");
- const [profileDoc, setProfileDoc] = useState<any>(null);
- const [questionnaire, setQuestionnaire] = useState<any>(null);
+  const { user, signOut } = useAuth();
 
- useEffect(() => {
-  const loadUser = async () => {
-    const me = await getMe();
-    if (!me) {
-      // Immediately redirect if no user
+  if (!user) return null;
+
+  const name = (user.user_metadata?.full_name as string) || "Student";
+  const email = user.email || "-";
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
       router.replace("/sign-in");
-      return;
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "Could not sign out.");
     }
-    setName(me.name || "Student");
-    setEmail(me.email || "-");
-    setUserId(me.$id);
-
-    // fetch profile and questionnaire data
-    const prof = await getUserProfile(me.$id);
-    setProfileDoc(prof);
-    const q = await getQuestionnaire(me.$id);
-    setQuestionnaire(q);
   };
-  
-  loadUser();
-}, []);
 
-// Don't render profile if no userId cus why would we right?? 
-if (!userId) {
-  return null; // or loading spinner
-}
-
- const signOut = async () => {
-   try {
-     await account.deleteSession("current");
-     router.replace("/sign-in");
-   } catch (e) {
-     console.error(e);
-     Alert.alert("Error", "Could not sign out.");
-   }
- };
-
- return (
-   <View style={styles.container}>
-     <Text style={styles.h1}>Profile</Text>
-
-     <Text style={styles.line}>Name: {name}</Text>
-     <Text style={styles.line}>Email: {email}</Text>
-     <Text style={styles.line}>User ID: {userId}</Text>
-
-     <View style={{ marginTop: 18 }}>
-       <Text style={styles.menu} onPress={() => router.push('/personal-details')}>
-         • Personal Information
-       </Text>
-     </View>
-
-     <CustomButton title="Sign Out" onPress={signOut} />
-   </View>
- );
+  return (
+    <View style={styles.container}>
+      <Text style={styles.h1}>Profile</Text>
+      <Text style={styles.line}>Name: {name}</Text>
+      <Text style={styles.line}>Email: {email}</Text>
+      <View style={{ marginTop: 18 }}>
+        <Text style={styles.menu} onPress={() => router.push("/personal-details")}>
+          • Personal Information
+        </Text>
+      </View>
+      <CustomButton title="Sign Out" onPress={handleSignOut} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
- container: { flex: 1, padding: 22, paddingTop: 60, backgroundColor: "#e2f5ff" },
- h1: { fontSize: 28, fontFamily: 'Poppins_700Bold', color: '#203b60', marginBottom: 14 },
- line: { marginTop: 6, fontFamily: 'Inter_400Regular', color: '#107c8f' },
- menu: { marginTop: 10, fontFamily: 'Inter_700Bold', color: '#107c8f' },
+  container: { flex: 1, padding: 22, paddingTop: 60, backgroundColor: "#e2f5ff" },
+  h1: { fontSize: 28, fontFamily: "Poppins_700Bold", color: "#203b60", marginBottom: 14 },
+  line: { marginTop: 6, fontFamily: "Inter_400Regular", color: "#107c8f" },
+  menu: { marginTop: 10, fontFamily: "Inter_700Bold", color: "#107c8f" },
 });
