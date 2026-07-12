@@ -12,7 +12,7 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     if (user) {
-      router.replace('/questionnare');
+      router.replace('/(tabs)');
     } else {
       router.replace('/sign-in');
     }
@@ -23,7 +23,6 @@ function RootLayoutNav() {
       <Stack.Screen name='sign-in' />
       <Stack.Screen name='sign-up' />
       <Stack.Screen name='(tabs)' />
-      <Stack.Screen name='questionnare' />
       <Stack.Screen
         name='results'
         options={{ headerShown: true, title: 'Search Results', headerTitleStyle: { fontFamily: 'Poppins_700Bold', color: '#203b60' } }}
