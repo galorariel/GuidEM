@@ -365,27 +365,36 @@ Behavior: 7 fields (majors, career_in_mind, hobbies, parents_jobs, dream_job, vo
 
 ---
 
-## Phase C — Rewire details, Saved, remove legacy
+## Phase C — Rewire details, save careers, Saved screen, remove legacy
 
-### Task 17: `app/career.tsx` from DB
+> Owner feedback (Checkpoint C): (a) remove the "Get Directions"/"Share" placeholder buttons on activity detail — "directions to a job" is the Guide's future job, not an activity action; (b) careers must be saveable too (a "considering" list), surfaced in Profile; (c) save == like — reuse the single heart/save action for both careers and activities (no separate like button). `saved.item_type` already supports `'career'`, so no schema change.
 
-- [ ] Load via `getCareer(id)`; render structured salary (`salaryMin–salaryMax salaryCurrency/salaryPeriod`) + `demandLevel`; add a "Related activities" section from `getActivitiesForCareer(id)` → `push("/detail?id=")`. Drop the `data/careers` import. tsc+lint. **Commit** `feat: career detail from catalog + related activities`
+### Task 17: Career-saving groundwork (data layer + CareerCard heart + Search wiring)
 
-### Task 18: `app/detail.tsx` from DB
+- [ ] **Data layer:** in `services/supabase.ts` add `getSavedIds(userId: string, itemType: string): Promise<string[]>` and refactor `getSavedActivityIds` to call `getSavedIds(userId, "activity")` (keep the old name as a thin wrapper so existing callers don't break). `addSaved`/`removeSaved` already take an `itemType` param — no change. In `services/catalog.ts` add `getCareersByIds(ids: string[]): Promise<Career[]>` (mirrors `getActivitiesByIds`).
+- [ ] **CareerCard:** add `isSaved?: boolean` + `onToggleSave?: () => void` props and a heart toggle, mirroring `ActivityCard` (same ♥/♡ + theme).
+- [ ] **Search tab:** in careers mode, load saved career ids (`getSavedIds(user.id, "career")`), pass `isSaved`/`onToggleSave` to `CareerCard`, and toggle via `addSaved(user.id, id, "career")`/`removeSaved(user.id, id, "career")` (mirror the activity save logic already there).
+- [ ] tsc+lint clean. **Commit** `feat: save/like careers (data layer + card heart + search wiring)`
 
-- [ ] Load the activity via `getActivity(id)`; keep existing Supabase save/unsave. Drop the `data/activities` import. tsc+lint. **Commit** `feat: activity detail from catalog`
+### Task 18: `app/career.tsx` from DB + related activities + Save button
 
-### Task 19: `app/saved.tsx` move + DB hydrate
+- [ ] Load via `getCareer(id)`; render structured salary (`salaryMin–salaryMax salaryCurrency/salaryPeriod`) + `demandLevel`; add a "Related activities" section from `getActivitiesForCareer(id)` → `push("/detail?id=")`; add a **Save/Unsave** button using `getSavedIds(user.id,"career")` + `addSaved`/`removeSaved(..., "career")`. Drop the `data/careers` import; use `constants/theme`. tsc+lint. **Commit** `feat: career detail from catalog + related activities + save`
 
-- [ ] Move `app/(tabs)/saved.tsx` → `app/saved.tsx`; hydrate saved ids via `getActivitiesByIds` (not the local array); register `saved` as a stack screen in `app/_layout.tsx`. tsc+lint. **Commit** `feat: saved as stack screen, hydrated from catalog`
+### Task 19: `app/detail.tsx` from DB + remove dead buttons
 
-### Task 20: Remove Appwrite + legacy
+- [ ] Load the activity via `getActivity(id)`; keep existing Supabase save/unsave; **remove the "Get Directions (Coming Soon)" and "Share (Coming Soon)" buttons** (dead placeholders). Drop the `data/activities` import; use `constants/theme`. tsc+lint. **Commit** `feat: activity detail from catalog; drop dead placeholder buttons`
 
-- [ ] `git rm app/questionnare.tsx services/appwrite.ts`; `npm uninstall appwrite`; remove `results` + `questionnare` from `app/_layout.tsx` stack, add `saved`; grep to confirm no `services/appwrite`/`from "appwrite"` imports remain. tsc+lint. **Commit** `chore: remove appwrite + legacy questionnaire route`
+### Task 20: `app/saved.tsx` move + DB hydrate (careers + activities)
 
-### Task 21: Retire local catalog arrays
+- [ ] Move `app/(tabs)/saved.tsx` → `app/saved.tsx`; two sections — **"Careers you're considering"** (`getSavedIds(user.id,"career")` → `getCareersByIds` → `CareerCard` → `/career?id=`) and **"Saved activities"** (`getSavedIds(user.id,"activity")` → `getActivitiesByIds` → `ActivityCard` → `/detail?id=`), with pull-to-refresh; register `saved` as a stack screen in `app/_layout.tsx`. Use `constants/theme`. tsc+lint. **Commit** `feat: saved screen (considering careers + saved activities) from catalog`
 
-- [ ] Confirm nothing under `app/` imports `data/careers`/`data/activities` (grep); `git rm data/careers.tsx data/activities.tsx`. tsc+lint. **Commit** `chore: retire local catalog arrays (now DB-backed)`
+### Task 21: Remove Appwrite + legacy
+
+- [ ] `git rm app/questionnare.tsx services/appwrite.ts`; `npm uninstall appwrite`; ensure `app/_layout.tsx` stack has `saved` and no `results`/`questionnare`; grep to confirm no `services/appwrite`/`from "appwrite"` imports remain. tsc+lint. **Commit** `chore: remove appwrite + legacy questionnaire route`
+
+### Task 22: Retire local catalog arrays
+
+- [ ] Confirm nothing under `app/` or `components/` imports `data/careers`/`data/activities` (grep); `git rm data/careers.tsx data/activities.tsx`. tsc+lint. **Commit** `chore: retire local catalog arrays (now DB-backed)`
 
 > **📱 CHECKPOINT D (final device smoke test):** see Verification.
 
@@ -397,9 +406,9 @@ Behavior: 7 fields (majors, career_in_mind, hobbies, parents_jobs, dream_job, vo
 2. **Per task:** `npx tsc --noEmit` + `npm run lint` clean for changed files.
 3. **Device (`npx expo start --tunnel`, Expo Go):**
    - Sign in → **Guide**; no-career prompt + roadmap placeholder render.
-   - **Search**: "engineer" → DB careers; open career → structured salary/demand + related activities; Activities segment → "internship" → results; open → save.
+   - **Search**: "engineer" → DB careers; ♥ a career; open career → structured salary/demand + related activities + Save button; Activities segment → "internship" → results; ♥ an activity; activity detail has NO "Get Directions"/"Share" buttons.
    - **Questionnaire**: fill + save; reopen → persists.
-   - **Profile → Saved**: saved activity appears (from DB); unsave works.
+   - **Profile → Saved**: "Careers you're considering" shows the saved career; "Saved activities" shows the saved activity; unsave works from both.
    - Sign out → sign in; data intact; only Supabase network calls.
 
 ## Deferred (NOT this plan)
