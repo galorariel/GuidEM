@@ -56,7 +56,11 @@ export default function Saved() {
             keyExtractor={(item) => item.id}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             renderItem={({ item }) => (
-              <ActivityCard item={item} isSaved onPress={() => router.push(`/detail?id=${item.id}`)} />
+              <ActivityCard
+                item={{ id: item.id, title: item.title, category: item.category, location: item.location, priceLabel: item.price }}
+                isSaved
+                onPress={() => router.push(`/detail?id=${item.id}`)}
+              />
             )}
             ListEmptyComponent={<Text style={{ marginTop: 12 }}>No saved items yet.</Text>}
             contentContainerStyle={{ paddingBottom: 40 }}
