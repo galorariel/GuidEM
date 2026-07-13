@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, Image } fr
 import CustomButton from "../components/CustomButton";
 import CustomInput from "../components/CustomInput";
 import { useAuth } from "../hooks/AuthContext";
+import { authErrorMessage } from "../services/authErrors";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -17,8 +18,8 @@ export default function SignIn() {
       await signIn(email, password);
       router.replace("/(tabs)");
     } catch (err: any) {
-      console.error("Sign in error", err);
-      Alert.alert("Sign in failed", err?.message || "Check email/password");
+      console.warn("Sign in error:", err?.message ?? err);
+      Alert.alert("Sign in failed", authErrorMessage(err, "Check your email and password."));
     } finally {
       setLoading(false);
     }

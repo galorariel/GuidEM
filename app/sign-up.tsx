@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, Image } fr
 import CustomButton from "../components/CustomButton";
 import CustomInput from "../components/CustomInput";
 import { useAuth } from "../hooks/AuthContext";
+import { authErrorMessage } from "../services/authErrors";
 import { upsertProfile } from "../services/supabase";
 
 export default function SignUp() {
@@ -30,8 +31,8 @@ export default function SignUp() {
       }
       router.replace("/(tabs)");
     } catch (err: any) {
-      console.error("Sign up error", err);
-      Alert.alert("Sign up failed", err?.message || "Check your input");
+      console.warn("Sign up error:", err?.message ?? err);
+      Alert.alert("Sign up failed", authErrorMessage(err, "Check your input."));
     } finally {
       setLoading(false);
     }
