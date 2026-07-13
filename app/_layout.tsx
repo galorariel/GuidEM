@@ -24,10 +24,6 @@ function RootLayoutNav() {
       <Stack.Screen name='sign-up' />
       <Stack.Screen name='(tabs)' />
       <Stack.Screen
-        name='results'
-        options={{ headerShown: true, title: 'Search Results', headerTitleStyle: { fontFamily: 'Poppins_700Bold', color: '#203b60' } }}
-      />
-      <Stack.Screen
         name='detail'
         options={{ headerShown: true, title: 'Activity Details', headerTitleStyle: { fontFamily: 'Poppins_700Bold', color: '#203b60' } }}
       />
