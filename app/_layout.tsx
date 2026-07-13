@@ -35,6 +35,10 @@ function RootLayoutNav() {
         name='personal-details'
         options={{ headerShown: true, title: 'Personal Information', headerTitleStyle: { fontFamily: 'Poppins_700Bold', color: '#203b60' } }}
       />
+      <Stack.Screen
+        name='saved'
+        options={{ headerShown: true, title: 'Saved', headerTitleStyle: { fontFamily: 'Poppins_700Bold', color: '#203b60' } }}
+      />
     </Stack>
   );
 }
