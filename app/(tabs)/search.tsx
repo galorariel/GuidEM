@@ -6,7 +6,7 @@ import CareerCard from "../../components/CareerCard";
 import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
 import { searchActivities, searchCareers, type Activity, type Career } from "../../services/catalog";
-import { addSaved, getSavedActivityIds, removeSaved } from "../../services/supabase";
+import { addSaved, getSavedActivityIds, getSavedIds, removeSaved } from "../../services/supabase";
 
 type Mode = "careers" | "activities";
 const DEMANDS = ["very_high", "high", "moderate", "stable", "low"];
@@ -26,11 +26,13 @@ export default function Search() {
   const [careers, setCareers] = useState<Career[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [savedCareerIds, setSavedCareerIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!user) { setSavedIds([]); return; }
+    if (!user) { setSavedIds([]); setSavedCareerIds([]); return; }
     getSavedActivityIds(user.id).then(setSavedIds);
+    getSavedIds(user.id, "career").then(setSavedCareerIds);
   }, [user]);
 
   useEffect(() => {
@@ -54,6 +56,12 @@ export default function Search() {
     if (!user) { router.push("/sign-in"); return; }
     if (savedIds.includes(id)) { await removeSaved(user.id, id); setSavedIds((p) => p.filter((x) => x !== id)); }
     else { await addSaved(user.id, id); setSavedIds((p) => [...p, id]); }
+  };
+
+  const toggleSaveCareer = async (id: string) => {
+    if (!user) { router.push("/sign-in"); return; }
+    if (savedCareerIds.includes(id)) { await removeSaved(user.id, id, "career"); setSavedCareerIds((p) => p.filter((x) => x !== id)); }
+    else { await addSaved(user.id, id, "career"); setSavedCareerIds((p) => [...p, id]); }
   };
 
   const chip = (label: string, active: boolean, onPress: () => void) => (
@@ -95,7 +103,14 @@ export default function Search() {
         <FlatList
           data={careers}
           keyExtractor={(c) => c.id}
-          renderItem={({ item }) => <CareerCard item={item} onPress={() => router.push(`/career?id=${item.id}` as any)} />}
+          renderItem={({ item }) => (
+            <CareerCard
+              item={item}
+              isSaved={savedCareerIds.includes(item.id)}
+              onToggleSave={user ? () => toggleSaveCareer(item.id) : undefined}
+              onPress={() => router.push(`/career?id=${item.id}` as any)}
+            />
+          )}
           ListEmptyComponent={<Text style={styles.empty}>No careers found.</Text>}
           contentContainerStyle={{ paddingBottom: 40 }}
         />

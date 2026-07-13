@@ -114,17 +114,24 @@ export async function upsertQuestionnaire(
 }
 
 // ---- Saved -----------------------------------------------------------------
-export async function getSavedActivityIds(userId: string): Promise<string[]> {
+export async function getSavedIds(
+  userId: string,
+  itemType: string
+): Promise<string[]> {
   const { data, error } = await supabase
     .from("saved")
     .select("item_id")
     .eq("user_id", userId)
-    .eq("item_type", "activity");
+    .eq("item_type", itemType);
   if (error) {
-    console.error("getSavedActivityIds", error);
+    console.error("getSavedIds", error);
     return [];
   }
   return (data ?? []).map((r) => r.item_id as string);
+}
+
+export async function getSavedActivityIds(userId: string): Promise<string[]> {
+  return getSavedIds(userId, "activity");
 }
 
 export async function addSaved(

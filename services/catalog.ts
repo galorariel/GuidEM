@@ -106,3 +106,10 @@ export async function getActivitiesByIds(ids: string[]): Promise<Activity[]> {
   if (error) { console.error("getActivitiesByIds", error); return []; }
   return (data ?? []).map(mapActivity);
 }
+
+export async function getCareersByIds(ids: string[]): Promise<Career[]> {
+  if (!ids.length) return [];
+  const { data, error } = await supabase.from("careers").select(CAREER_COLS).in("id", ids);
+  if (error) { console.error("getCareersByIds", error); return []; }
+  return (data ?? []).map(mapCareer);
+}
