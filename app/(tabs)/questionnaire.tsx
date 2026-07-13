@@ -4,6 +4,7 @@ import CustomButton from "../../components/CustomButton";
 import CustomInput from "../../components/CustomInput";
 import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
+import { authErrorMessage } from "../../services/authErrors";
 import { getQuestionnaire, upsertQuestionnaire } from "../../services/supabase";
 
 export default function QuestionnaireTab() {
@@ -38,8 +39,9 @@ export default function QuestionnaireTab() {
         dream_job: dreamJob, volunteer_interest: volunteerInterest, psychometric_grade: psychometricGrade,
       });
       Alert.alert("Saved", "Your answers were saved.");
-    } catch {
-      Alert.alert("Error", "Could not save your answers.");
+    } catch (err: any) {
+      console.warn("questionnaire save:", err?.message ?? err);
+      Alert.alert("Couldn't save", authErrorMessage(err, "Please try again."));
     } finally {
       setSaving(false);
     }

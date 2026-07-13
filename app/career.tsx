@@ -1,8 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import ActivityCard from "../components/ActivityCard";
-import CustomButton from "../components/CustomButton";
 import { colors, fonts } from "../constants/theme";
 import { useAuth } from "../hooks/AuthContext";
 import { getActivitiesForCareer, getCareer, type Activity, type Career } from "../services/catalog";
@@ -49,13 +48,14 @@ export default function CareerDetail() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 22 }}>
-      <Text style={styles.title}>{career.title}</Text>
-
-      <CustomButton
-        title={isSaved ? "Considering ✓ (tap to remove)" : "Save (considering)"}
-        onPress={toggleSave}
-        disabled={!user}
-      />
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>{career.title}</Text>
+        {user ? (
+          <Pressable onPress={toggleSave} hitSlop={10}>
+            <Text style={styles.heart}>{isSaved ? "♥" : "♡"}</Text>
+          </Pressable>
+        ) : null}
+      </View>
 
       <Text style={styles.label}>Description</Text>
       <Text style={styles.value}>{career.description}</Text>
@@ -97,7 +97,9 @@ export default function CareerDetail() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg },
-  title: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading, marginBottom: 14 },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  title: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading, flex: 1, paddingRight: 10 },
+  heart: { fontSize: 26, color: colors.accent },
   label: { fontFamily: fonts.bodyBold, color: colors.accent, marginTop: 14 },
   value: { fontFamily: fonts.body, color: colors.accent, marginTop: 4 },
 });

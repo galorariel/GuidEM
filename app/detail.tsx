@@ -1,7 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
-import CustomButton from "../components/CustomButton";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "../constants/theme";
 import { useAuth } from "../hooks/AuthContext";
 import { getActivity, type Activity } from "../services/catalog";
@@ -45,7 +44,14 @@ export default function Detail() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Activity Details</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Activity Details</Text>
+        {user ? (
+          <Pressable onPress={toggleSave} hitSlop={10} disabled={loading}>
+            <Text style={styles.heart}>{isSaved ? "♥" : "♡"}</Text>
+          </Pressable>
+        ) : null}
+      </View>
       <View style={styles.imgStub} />
 
       <Text style={styles.label}>Title</Text>
@@ -58,8 +64,6 @@ export default function Detail() {
       <Text style={styles.value}>{price}</Text>
       <Text style={styles.label}>Description</Text>
       <Text style={styles.value}>{activity.description}</Text>
-
-      <CustomButton title={isSaved ? "Unsave" : "Save"} onPress={toggleSave} disabled={!user} />
     </View>
   );
 }
@@ -67,7 +71,9 @@ export default function Detail() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 22, paddingTop: 60, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg },
-  title: { fontSize: 18, fontFamily: fonts.heading, color: colors.heading, marginBottom: 12 },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  title: { fontSize: 18, fontFamily: fonts.heading, color: colors.heading, flex: 1, paddingRight: 10 },
+  heart: { fontSize: 26, color: colors.accent },
   imgStub: { height: 160, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: "#E0E0E0", marginBottom: 12 },
   label: { fontFamily: fonts.bodyBold, color: colors.accent, marginTop: 12 },
   value: { fontFamily: fonts.body, color: colors.accent, marginTop: 2 },
