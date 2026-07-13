@@ -1,6 +1,13 @@
 -- Public-read career/activity catalog. Text ids match the existing
 -- profiles.career / saved.item_id references (no change to those tables).
 
+-- Postgres marks array_to_string as non-IMMUTABLE, so it can't be used
+-- directly inside a `stored generated` column. This thin IMMUTABLE wrapper
+-- lets us fold text[] columns into the tsvector generation expression.
+create or replace function public.immutable_array_to_string(arr text[])
+  returns text language sql immutable
+  as $$ select array_to_string(arr, ' ') $$;
+
 create table public.careers (
   id                   text primary key,
   title                text not null,
@@ -21,9 +28,9 @@ create table public.careers (
   search_vector        tsvector generated always as (
     to_tsvector('english',
       title || ' ' || description || ' ' ||
-      array_to_string(required_skills, ' ') || ' ' ||
-      array_to_string(recommended_subjects, ' ') || ' ' ||
-      array_to_string(tags, ' ')
+      public.immutable_array_to_string(required_skills) || ' ' ||
+      public.immutable_array_to_string(recommended_subjects) || ' ' ||
+      public.immutable_array_to_string(tags)
     )
   ) stored
 );
@@ -43,7 +50,7 @@ create table public.activities (
   search_vector   tsvector generated always as (
     to_tsvector('english',
       title || ' ' || description || ' ' || category || ' ' ||
-      array_to_string(tags, ' ')
+      public.immutable_array_to_string(tags)
     )
   ) stored
 );

@@ -45,6 +45,12 @@ The rest of this file (Tasks 9–21) supersedes the previous Tasks 9–13.
 -- Public-read career/activity catalog. Text ids match the existing
 -- profiles.career / saved.item_id references (no change to those tables).
 
+-- array_to_string is non-IMMUTABLE; wrap it so it can be used in the
+-- stored generated tsvector columns below.
+create or replace function public.immutable_array_to_string(arr text[])
+  returns text language sql immutable
+  as $$ select array_to_string(arr, ' ') $$;
+
 create table public.careers (
   id                   text primary key,
   title                text not null,
@@ -65,9 +71,9 @@ create table public.careers (
   search_vector        tsvector generated always as (
     to_tsvector('english',
       title || ' ' || description || ' ' ||
-      array_to_string(required_skills, ' ') || ' ' ||
-      array_to_string(recommended_subjects, ' ') || ' ' ||
-      array_to_string(tags, ' ')
+      public.immutable_array_to_string(required_skills) || ' ' ||
+      public.immutable_array_to_string(recommended_subjects) || ' ' ||
+      public.immutable_array_to_string(tags)
     )
   ) stored
 );
@@ -87,7 +93,7 @@ create table public.activities (
   search_vector   tsvector generated always as (
     to_tsvector('english',
       title || ' ' || description || ' ' || category || ' ' ||
-      array_to_string(tags, ' ')
+      public.immutable_array_to_string(tags)
     )
   ) stored
 );
