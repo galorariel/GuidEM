@@ -20,7 +20,15 @@ export default function SignUp() {
     setLoading(true);
     try {
       const name = username.trim() || "Student";
-      const created = await signUp(email, password, name);
+      const { user: created, session } = await signUp(email, password, name);
+      if (!session) {
+        Alert.alert(
+          "Confirm your email",
+          "We sent you a confirmation link. Please verify your email, then sign in."
+        );
+        router.replace("/sign-in");
+        return;
+      }
       if (created) {
         // profile row is auto-created by the DB trigger; fill in extra fields
         await upsertProfile(created.id, {

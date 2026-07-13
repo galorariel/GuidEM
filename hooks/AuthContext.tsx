@@ -7,7 +7,11 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<User | null>;
-  signUp: (email: string, password: string, fullName: string) => Promise<User | null>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string
+  ) => Promise<{ user: User | null; session: Session | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -46,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       options: { data: { full_name: fullName } },
     });
     if (error) throw error;
-    return data.user;
+    return data;
   };
 
   const signOut = async () => {

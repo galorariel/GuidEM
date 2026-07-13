@@ -28,7 +28,7 @@ export type Profile = {
   school: string;
   grade_level: string;
   city: string;
-  career: string | null; // career id from data/careers.tsx
+  career: string | null; // career id from the careers catalog table
   created_at: string;
   updated_at: string;
 };
