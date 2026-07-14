@@ -68,6 +68,7 @@ export default function PersonalDetails() {
       <Text style={styles.h1}>Personal Information</Text>
       <Text style={styles.field}>Name: {name}</Text>
       <Text style={styles.field}>Email: {user.email}</Text>
+      {profile && <Text style={styles.field}>Role: {profile.role || "-"}</Text>}
 
       <CustomInput label="School" value={school} onChangeText={setSchool} placeholder="School name" />
       <CustomInput label="City" value={city} onChangeText={setCity} placeholder="Tel Aviv" />
