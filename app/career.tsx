@@ -1,11 +1,12 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import ActivityCard from "../components/ActivityCard";
 import { colors, fonts } from "../constants/theme";
 import { useAuth } from "../hooks/AuthContext";
 import { getActivitiesForCareer, getCareer, type Activity, type Career } from "../services/catalog";
-import { addSaved, getSavedIds, removeSaved } from "../services/supabase";
+import { addSaved, getProfile, getSavedIds, removeSaved, setCareerGoal } from "../services/supabase";
+import { authErrorMessage } from "../services/authErrors";
 
 function priceLabel(a: Activity) {
   return a.priceAmount === 0 ? "Free" : `${a.priceCurrency}${a.priceAmount}`;
@@ -17,6 +18,7 @@ export default function CareerDetail() {
   const [career, setCareer] = useState<Career | null>(null);
   const [related, setRelated] = useState<Activity[]>([]);
   const [isSaved, setIsSaved] = useState(false);
+  const [isGoal, setIsGoal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,6 +29,8 @@ export default function CareerDetail() {
       if (user && c) {
         const ids = await getSavedIds(user.id, "career");
         setIsSaved(ids.includes(c.id));
+        const profile = await getProfile(user.id);
+        setIsGoal(profile?.career === c.id);
       }
       setLoading(false);
     })();
@@ -36,6 +40,16 @@ export default function CareerDetail() {
     if (!career || !user) return;
     if (isSaved) { await removeSaved(user.id, career.id, "career"); setIsSaved(false); }
     else { await addSaved(user.id, career.id, "career"); setIsSaved(true); }
+  };
+
+  const chooseGoal = async () => {
+    if (!career || !user) return;
+    try {
+      await setCareerGoal(user.id, career.title, career.id);
+      router.replace("/(tabs)" as any); // redirect to the Guide tab
+    } catch (err: any) {
+      Alert.alert("Couldn't set goal", authErrorMessage(err, "Please try again."));
+    }
   };
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.accent} /></View>;
@@ -51,9 +65,14 @@ export default function CareerDetail() {
       <View style={styles.headerRow}>
         <Text style={styles.title}>{career.title}</Text>
         {user ? (
-          <Pressable onPress={toggleSave} hitSlop={10}>
-            <Text style={styles.heart}>{isSaved ? "♥" : "♡"}</Text>
-          </Pressable>
+          <View style={styles.actions}>
+            <Pressable onPress={chooseGoal} hitSlop={10}>
+              <Text style={[styles.goal, isGoal && styles.goalActive]}>{isGoal ? "⚑" : "⚐"}</Text>
+            </Pressable>
+            <Pressable onPress={toggleSave} hitSlop={10}>
+              <Text style={styles.heart}>{isSaved ? "♥" : "♡"}</Text>
+            </Pressable>
+          </View>
         ) : null}
       </View>
 
@@ -99,6 +118,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
   title: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading, flex: 1, paddingRight: 10 },
+  actions: { flexDirection: "row", alignItems: "center", gap: 12 },
+  goal: { fontSize: 26, color: colors.muted },
+  goalActive: { color: colors.button },
   heart: { fontSize: 26, color: colors.accent },
   label: { fontFamily: fonts.bodyBold, color: colors.accent, marginTop: 14 },
   value: { fontFamily: fonts.body, color: colors.accent, marginTop: 4 },

@@ -6,7 +6,7 @@ import CareerCard from "../../components/CareerCard";
 import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
 import { searchActivities, searchCareers, type Activity, type Career } from "../../services/catalog";
-import { addSaved, getSavedActivityIds, getSavedIds, removeSaved } from "../../services/supabase";
+import { addSaved, getProfile, getSavedActivityIds, getSavedIds, removeSaved, setCareerGoal } from "../../services/supabase";
 
 type Mode = "careers" | "activities";
 const DEMANDS = ["very_high", "high", "moderate", "stable", "low"];
@@ -27,12 +27,14 @@ export default function Search() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [savedCareerIds, setSavedCareerIds] = useState<string[]>([]);
+  const [goalCareerId, setGoalCareerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!user) { setSavedIds([]); setSavedCareerIds([]); return; }
+    if (!user) { setSavedIds([]); setSavedCareerIds([]); setGoalCareerId(null); return; }
     getSavedActivityIds(user.id).then(setSavedIds);
     getSavedIds(user.id, "career").then(setSavedCareerIds);
+    getProfile(user.id).then((p) => setGoalCareerId(p?.career ?? null));
   }, [user]);
 
   useEffect(() => {
@@ -62,6 +64,12 @@ export default function Search() {
     if (!user) { router.push("/sign-in"); return; }
     if (savedCareerIds.includes(id)) { await removeSaved(user.id, id, "career"); setSavedCareerIds((p) => p.filter((x) => x !== id)); }
     else { await addSaved(user.id, id, "career"); setSavedCareerIds((p) => [...p, id]); }
+  };
+
+  const setGoalCareer = async (id: string, title: string) => {
+    if (!user) { router.push("/sign-in"); return; }
+    await setCareerGoal(user.id, title, id);
+    router.navigate("/(tabs)" as any); // jump to the Guide tab
   };
 
   const chip = (label: string, active: boolean, onPress: () => void) => (
@@ -108,6 +116,8 @@ export default function Search() {
               item={item}
               isSaved={savedCareerIds.includes(item.id)}
               onToggleSave={user ? () => toggleSaveCareer(item.id) : undefined}
+              isGoal={goalCareerId === item.id}
+              onSetGoal={user ? () => setGoalCareer(item.id, item.title) : undefined}
               onPress={() => router.push(`/career?id=${item.id}` as any)}
             />
           )}
