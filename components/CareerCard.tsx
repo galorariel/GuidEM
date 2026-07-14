@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "../constants/theme";
@@ -19,7 +20,7 @@ export default function CareerCard({ item, onPress, isSaved, onToggleSave, isGoa
         <View style={styles.actions}>
           {onSetGoal ? (
             <Pressable onPress={onSetGoal} hitSlop={10}>
-              <Text style={[styles.goal, isGoal && styles.goalActive]}>{isGoal ? "⚑" : "⚐"}</Text>
+              <Ionicons name={isGoal ? "compass" : "compass-outline"} size={20} color={isGoal ? colors.button : colors.muted} />
             </Pressable>
           ) : null}
           {onToggleSave ? (
@@ -38,8 +39,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   title: { fontFamily: fonts.heading, color: colors.heading, flex: 1, paddingRight: 10 },
   actions: { flexDirection: "row", alignItems: "center", gap: 10 },
-  goal: { fontSize: 18, color: colors.muted },
-  goalActive: { color: colors.button },
   heart: { fontSize: 18, color: colors.accent },
   meta: { marginTop: 6, fontFamily: fonts.body, color: colors.accent },
 });

@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -67,7 +68,7 @@ export default function CareerDetail() {
         {user ? (
           <View style={styles.actions}>
             <Pressable onPress={chooseGoal} hitSlop={10}>
-              <Text style={[styles.goal, isGoal && styles.goalActive]}>{isGoal ? "⚑" : "⚐"}</Text>
+              <Ionicons name={isGoal ? "compass" : "compass-outline"} size={26} color={isGoal ? colors.button : colors.muted} />
             </Pressable>
             <Pressable onPress={toggleSave} hitSlop={10}>
               <Text style={styles.heart}>{isSaved ? "♥" : "♡"}</Text>
@@ -119,8 +120,6 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
   title: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading, flex: 1, paddingRight: 10 },
   actions: { flexDirection: "row", alignItems: "center", gap: 12 },
-  goal: { fontSize: 26, color: colors.muted },
-  goalActive: { color: colors.button },
   heart: { fontSize: 26, color: colors.accent },
   label: { fontFamily: fonts.bodyBold, color: colors.accent, marginTop: 14 },
   value: { fontFamily: fonts.body, color: colors.accent, marginTop: 4 },
