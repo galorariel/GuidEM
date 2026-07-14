@@ -3,9 +3,13 @@ import React, { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, Image } from "react-native";
 import CustomButton from "../components/CustomButton";
 import CustomInput from "../components/CustomInput";
+import MajorsInput from "../components/MajorsInput";
+import { colors, fonts } from "../constants/theme";
 import { useAuth } from "../hooks/AuthContext";
 import { authErrorMessage } from "../services/authErrors";
 import { upsertProfile } from "../services/supabase";
+
+const GRADE_OPTIONS = ["9", "10", "11", "12"];
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -13,6 +17,9 @@ export default function SignUp() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [school, setSchool] = useState("");
+  const [city, setCity] = useState("");
+  const [grade, setGrade] = useState("");
+  const [majors, setMajors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
 
@@ -35,6 +42,9 @@ export default function SignUp() {
           full_name: name,
           role: role.trim(),
           school: school.trim(),
+          city: city.trim(),
+          grade_level: grade,
+          majors,
         });
       }
       router.replace("/(tabs)");
@@ -59,6 +69,27 @@ export default function SignUp() {
       <CustomInput label="UserName *" value={username} onChangeText={setUsername} placeholder="username" />
       <CustomInput label="Password *" value={password} onChangeText={setPassword} placeholder="********" secureTextEntry />
       <CustomInput label="School" value={school} onChangeText={setSchool} placeholder="School name" />
+      <CustomInput label="City" value={city} onChangeText={setCity} placeholder="Tel Aviv" />
+
+      <Text style={styles.label}>Grade level</Text>
+      <View style={styles.gradeRow}>
+        {GRADE_OPTIONS.map((option) => {
+          const selected = grade === option;
+          return (
+            <Pressable
+              key={option}
+              onPress={() => setGrade(option)}
+              style={[styles.gradeOption, selected && styles.gradeOptionSelected]}
+            >
+              <Text style={[styles.gradeOptionText, selected && styles.gradeOptionTextSelected]}>
+                {option}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <MajorsInput label="Majors / subjects" value={majors} onChange={setMajors} />
 
       <CustomButton
         title={loading ? "Signing up…" : "Sign Up"}
@@ -113,5 +144,35 @@ const styles = StyleSheet.create({
   footerRow: {
     marginTop: 20,
     alignItems: "center",
+  },
+  label: {
+    fontFamily: fonts.bodyBold,
+    color: colors.accent,
+    marginBottom: 6,
+  },
+  gradeRow: {
+    flexDirection: "row",
+    marginBottom: 12,
+  },
+  gradeOption: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    backgroundColor: colors.card,
+  },
+  gradeOptionSelected: {
+    backgroundColor: colors.button,
+    borderColor: colors.button,
+  },
+  gradeOptionText: {
+    fontFamily: fonts.body,
+    color: colors.accent,
+  },
+  gradeOptionTextSelected: {
+    fontFamily: fonts.bodyBold,
+    color: "#fff",
   },
 });
