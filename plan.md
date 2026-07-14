@@ -26,6 +26,7 @@ The guide's personalization depends on knowing the student. Collect it at signâ€
 
 - Real images for careers/activities (`image_url` columns exist).
 - Search debounce; richer filters. City picker (vs free text).
+- Sign-up UX pass: consider splitting into a few sequential pages/steps; refine the +add-majors flow, grade selector, field wording/order.
 - Use `constants/theme` everywhere; tab icons/labels; consider dark mode.
 - Drop the `router.push(... as any)` casts once expoâ€‘router route types regenerate.
 - Consistent loading/error states.
