@@ -20,7 +20,16 @@ export const supabase = createClient(url, anonKey, {
   },
 });
 
-// ---- Types (mirror supabase/migrations/20260712000000_init.sql) ------------
+// ---- Types (mirror supabase/migrations/*.sql) ------------------------------
+// RIASEC / Holland Codes — set by the questionnaire (personality test).
+export type PersonalityType =
+  | "realistic"
+  | "investigative"
+  | "artistic"
+  | "social"
+  | "enterprising"
+  | "conventional";
+
 export type Profile = {
   id: string;
   full_name: string;
@@ -28,6 +37,8 @@ export type Profile = {
   school: string;
   grade_level: string;
   city: string;
+  majors: string[]; // school subjects/majors ('{}' = none chosen yet)
+  personality_type: PersonalityType | null; // null = questionnaire not taken
   career: string | null; // career id from the careers catalog table
   created_at: string;
   updated_at: string;
