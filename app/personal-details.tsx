@@ -80,7 +80,7 @@ export default function PersonalDetails() {
       <CustomButton
         title={saving ? "Saving…" : "Save"}
         onPress={handleSave}
-        disabled={saving}
+        disabled={saving || !profile}
       />
       {saving && <ActivityIndicator style={{ marginTop: 10 }} />}
 
