@@ -1,12 +1,13 @@
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import ActivityCard from "../../components/ActivityCard";
 import CareerCard from "../../components/CareerCard";
 import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
 import { searchActivities, searchCareers, type Activity, type Career } from "../../services/catalog";
 import { addSaved, getProfile, getSavedActivityIds, getSavedIds, removeSaved, setCareerGoal } from "../../services/supabase";
+import { authErrorMessage } from "../../services/authErrors";
 
 type Mode = "careers" | "activities";
 const DEMANDS = ["very_high", "high", "moderate", "stable", "low"];
@@ -68,8 +69,12 @@ export default function Search() {
 
   const setGoalCareer = async (id: string, title: string) => {
     if (!user) { router.push("/sign-in"); return; }
-    await setCareerGoal(user.id, title, id);
-    router.navigate("/(tabs)" as any); // jump to the Guide tab
+    try {
+      await setCareerGoal(user.id, title, id);
+      router.navigate("/(tabs)" as any); // jump to the Guide tab
+    } catch (err: any) {
+      Alert.alert("Couldn't set goal", authErrorMessage(err, "Please try again."));
+    }
   };
 
   const chip = (label: string, active: boolean, onPress: () => void) => (
