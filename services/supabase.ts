@@ -39,7 +39,8 @@ export type Profile = {
   city: string;
   majors: string[]; // school subjects/majors ('{}' = none chosen yet)
   personality_type: PersonalityType | null; // null = questionnaire not taken
-  career: string | null; // career id from the careers catalog table
+  career: string | null; // catalog career id the goal points to (null = free-text goal)
+  career_goal: string | null; // active goal's human-readable title (null = no goal)
   created_at: string;
   updated_at: string;
 };
@@ -90,6 +91,22 @@ export async function upsertProfile(
     console.error("upsertProfile", error);
     throw error;
   }
+}
+
+// ---- Career goal (Round 2) -------------------------------------------------
+// One active goal per user, stored on the profile row. `careerId` links to a
+// catalog career when the goal was chosen from the catalog; null for a
+// free-text goal.
+export async function setCareerGoal(
+  userId: string,
+  title: string,
+  careerId: string | null = null
+): Promise<void> {
+  await upsertProfile(userId, { career_goal: title, career: careerId });
+}
+
+export async function clearCareerGoal(userId: string): Promise<void> {
+  await upsertProfile(userId, { career_goal: null, career: null });
 }
 
 // ---- Questionnaire ---------------------------------------------------------
