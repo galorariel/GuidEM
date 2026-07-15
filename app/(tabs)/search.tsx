@@ -1,5 +1,5 @@
-import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import ActivityCard from "../../components/ActivityCard";
 import CareerCard from "../../components/CareerCard";
@@ -31,12 +31,16 @@ export default function Search() {
   const [goalCareerId, setGoalCareerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!user) { setSavedIds([]); setSavedCareerIds([]); setGoalCareerId(null); return; }
-    getSavedActivityIds(user.id).then(setSavedIds);
-    getSavedIds(user.id, "career").then(setSavedCareerIds);
-    getProfile(user.id).then((p) => setGoalCareerId(p?.career ?? null));
-  }, [user]);
+  // Refresh saved/goal state on focus (not just mount) so the ♥ and compass
+  // reflect changes made on other tabs (e.g. clearing/setting the goal).
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) { setSavedIds([]); setSavedCareerIds([]); setGoalCareerId(null); return; }
+      getSavedActivityIds(user.id).then(setSavedIds);
+      getSavedIds(user.id, "career").then(setSavedCareerIds);
+      getProfile(user.id).then((p) => setGoalCareerId(p?.career ?? null));
+    }, [user])
+  );
 
   useEffect(() => {
     let active = true;

@@ -101,6 +101,9 @@ export default function Guide() {
       setUnits(await getGuideUnits(user.id));
     } catch (err: any) {
       Alert.alert("Couldn't submit choice", authErrorMessage(err, "Please try again."));
+      // Refresh so a retry sees committed state (unit now 'done'), letting the
+      // idempotent guard in submitChoice avoid a duplicate progress summary.
+      setUnits(await getGuideUnits(user.id));
     } finally {
       setChoiceBusyUnitId(null);
     }

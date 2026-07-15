@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import CareerCard from "../../components/CareerCard";
@@ -99,6 +99,17 @@ export default function QuestionnaireTab() {
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Refresh only the goal/saved state on focus (NOT the quiz/results mode, which
+  // would clobber an in-progress Retake) so the recommendation cards' compass/♥
+  // reflect changes made on other tabs.
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      getSavedIds(user.id, "career").then(setSavedCareerIds);
+      getProfile(user.id).then((p) => setGoalCareerId(p?.career ?? null));
+    }, [user])
+  );
 
   const retake = () => {
     setSelectedAnswers(new Array(questions.length).fill(0));

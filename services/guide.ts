@@ -164,10 +164,30 @@ export async function getGuideUnits(userId: string): Promise<GuideUnitFull[]> {
   return (data ?? []).map(mapUnitFull);
 }
 
+// Delete the user's whole guide path. The FK cascade removes steps + choices;
+// progress_summaries.unit_id is ON DELETE SET NULL, so the parent history survives.
+export async function clearGuide(userId: string): Promise<void> {
+  const { error } = await supabase.from("guide_units").delete().eq("user_id", userId);
+  if (error) {
+    console.error("clearGuide", error);
+    throw error;
+  }
+}
+
 export async function ensureFirstUnit(userId: string): Promise<GuideUnitFull> {
+  const profile = await getProfile(userId);
+  const goalTitle = profile?.career_goal ?? "";
+  const goalCareerId = profile?.career ?? null;
+
   const units = await getGuideUnits(userId);
   if (units.length) {
-    return units.find((u) => u.unitIndex === 0) ?? units[0];
+    const first = units.find((u) => u.unitIndex === 0) ?? units[0];
+    // A new goal = a new path: if the goal changed since this path started
+    // (unit 0's snapshot no longer matches the profile), reset and regenerate.
+    if (first.goalTitle === goalTitle && first.goalCareerId === goalCareerId) {
+      return first;
+    }
+    await clearGuide(userId);
   }
   const ctx = await buildContext(userId, 0);
   const gen = await generator.generateUnit(ctx);
@@ -246,6 +266,14 @@ export async function submitChoice(
     console.error("submitChoice summary", summaryError);
     throw summaryError;
   }
+
+  // Prune the completed unit's step content — keep only the shell + choice (for
+  // the "you chose X" history readout and for branching). Best-effort cleanup.
+  const { error: pruneError } = await supabase
+    .from("guide_steps")
+    .delete()
+    .eq("unit_id", unit.id);
+  if (pruneError) console.error("submitChoice prune", pruneError);
 
   const ctx = await buildContext(userId, unit.unitIndex + 1);
   const gen = await generator.generateUnit(ctx);
