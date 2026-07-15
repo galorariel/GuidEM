@@ -76,3 +76,13 @@ Child routes (step/choice detail) as needed under the existing stack.
 
 ## Migration gate
 `supabase/migrations/20260716000000_guide.sql` (additive) — owner applies to the shared Supabase before device tests.
+
+## Post-build refinements (implemented)
+- **Prune old steps.** On advance, `submitChoice` deletes the completed unit's `guide_steps` (keeps the `guide_units` shell + `guide_choices`). Each user holds only ~the active unit's steps at a time — durable + single source of truth without accumulating the whole path. Done units hydrate with `steps: []` and render as a decision readout.
+- **Path regenerates on goal change.** `ensureFirstUnit` compares unit 0's goal snapshot to the current profile goal; on mismatch it `clearGuide` (delete `guide_units`; cascade removes steps/choices; `progress_summaries.unit_id` is `on delete set null` so history survives) and regenerates. A new goal = a new path.
+- **Cross-tab goal freshness.** Search + questionnaire refresh goal/saved state on focus (`useFocusEffect`) so the compass/♥ never go stale after a goal change on another tab.
+
+## Before enabling the real LLM (`EXPO_PUBLIC_USE_LLM_GUIDE=true`) — REQUIRED
+These are latent with the deterministic mock (pure, can't fail mid-write) but become reachable once `edgeGenerator` makes fallible network calls:
+1. **Atomic unit persistence.** `persistGeneratedUnit` commits the unit row before its steps/choice (no transaction). If steps/choice fail after the unit commits, a retry hits `ignoreDuplicates` → seeding is skipped → an orphan unit with no steps/choice (a UI dead end). Fix: wrap unit+steps+choice in one RPC/transaction, OR on re-read detect `steps.length === 0 && !choice` and re-seed.
+2. **Successor reconcile.** If a choice commits (unit `done`) but next-unit generation fails, there's no UI path to regenerate the missing successor (`ensureFirstUnit` only guarantees unit 0). Fix: a reconcile that regenerates when the latest `done` unit has no successor.
