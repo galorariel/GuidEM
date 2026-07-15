@@ -74,6 +74,7 @@ export default function QuestionnaireTab() {
   const [resultSecondary, setResultSecondary] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<Career[]>([]);
   const [savedCareerIds, setSavedCareerIds] = useState<string[]>([]);
+  const [goalCareerId, setGoalCareerId] = useState<string | null>(null);
 
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -86,6 +87,7 @@ export default function QuestionnaireTab() {
     if (!user) { setSavedCareerIds([]); setMode("quiz"); return; }
     setSavedCareerIds(await getSavedIds(user.id, "career"));
     const profile = await getProfile(user.id);
+    setGoalCareerId(profile?.career ?? null);
     if (profile?.personality_type) {
       setResultPrimary(cap(profile.personality_type));
       setResultSecondary(null);
@@ -173,6 +175,7 @@ export default function QuestionnaireTab() {
     if (!user) return;
     try {
       await setCareerGoal(user.id, career.title, career.id);
+      setGoalCareerId(career.id); // reflect the new goal so the compass fills on return
       router.navigate("/(tabs)" as any); // jump to the Guide tab
     } catch (err: any) {
       Alert.alert("Something went wrong", authErrorMessage(err, "Please try again."));
@@ -209,6 +212,7 @@ export default function QuestionnaireTab() {
                   item={career}
                   isSaved={savedCareerIds.includes(career.id)}
                   onToggleSave={() => toggleSaveCareer(career.id)}
+                  isGoal={goalCareerId === career.id}
                   onPress={() => router.push(`/career?id=${career.id}` as any)}
                   onSetGoal={() => onPickGoal(career)}
                 />
