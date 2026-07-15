@@ -1,38 +1,51 @@
 # Plan — AI Career Guide
 
-Concept: see `guidem.md`. The groundwork round (Supabase auth + catalog, 3‑pillar tabs, save/like) is done and merged to `main`. Work now proceeds in **rounds** toward the app's headline feature — the **AI Career Guide**: a Duolingo‑like personalized path of small steps toward a chosen career, each step giving real‑life, location‑aware how‑to.
+Concept: see `guidem.md`. The app is built in **rounds** toward its headline feature — the **AI Career Guide**: a Duolingo-like personalized path of small steps toward a chosen career, each giving real-life, location-aware how-to.
 
-**Branch/merge strategy (trunk‑style):** finished, reviewed rounds land on `main` promptly; each new round branches fresh off `main`. Parallel work does not wait on other branches. Two lines of work run in parallel:
-- **Owner** — the guide + the personalization data it needs. Owns all migrations. (Round 1 merged to `main`; Round 2 on `feat/guide-goal-setting`.)
-- **Collaborator** `feat/questionnaire-recommendations` — the questionnaire, redefined as a **RIASEC personality test** whose only output is `profiles.personality_type` (`realistic|investigative|artistic|social|enterprising|conventional`), used to recommend catalog careers. Syncs `main` in as rounds land (inherits `personality_type` for free); only reconciles its own questionnaire section of `personal-details.tsx`.
+**Branch/merge strategy (trunk-style):** finished, reviewed rounds land on `main` promptly; each new round branches fresh off `main`. Owner owns all migrations (applied to the shared Supabase before device tests). Each round runs subagent-driven (implementer + task review per task, opus whole-branch review) with device checkpoints.
 
-## Round 1 — Sign‑up data foundation ✅ DONE (merged to `main`)
+## Status
 
-The guide's personalization depends on knowing the student. Collect it at sign‑up and make it editable.
+| Round | Feature | State |
+|-------|---------|-------|
+| 1 | Sign-up personalization (city/grade/majors + `personality_type` column) + editable Profile | ✅ merged |
+| 2 | Career goal: set/clear from Search, career detail, Guide text box | ✅ merged |
+| 3 | Questionnaire: merged collaborator's RIASEC quiz → persist `personality_type` → `recommendCareers` → set goal (`careers.holland_codes`) | ✅ merged |
+| 3.1 | Questionnaire tab is stateful: quiz until taken, then a completed view (type + recommendations + Retake) | ✅ merged |
+| **4** | **Unit guide (stub-first): the roadmap** | **NEXT** |
+| 5 | Parent accounts (child share-code + summary feed) | planned |
 
-- **Phase A — Data:** migration `supabase/migrations/20260714000000_profile_fields.sql` adds `profiles.majors text[]` (default `{}`) and `profiles.personality_type text` (nullable, CHECK‑constrained to the 6 RIASEC values). Add `majors` + `personality_type` (+ `PersonalityType` union) to the `Profile` type in `services/supabase.ts`. `city`/`grade_level` columns already exist. → **Checkpoint A:** owner applies migration.
-- **Phase B — Sign‑up:** new reusable `components/MajorsInput.tsx` ("+ add" chips, not a picker). Add **City**, **Grade level** (tap selector), **Majors** to `app/sign-up.tsx`; extend its `upsertProfile` call. → **Checkpoint B (device).**
-- **Phase C — Edit in Profile:** make `app/personal-details.tsx` profile section editable (city/grade/majors/school + Save); show `personality_type` read‑only. → **Checkpoint C (device).**
+Working end-to-end today: sign-up → RIASEC quiz → personality-based recommendations → set a career goal → goal shows on the Guide tab.
 
-`personality_type` is **pre‑provisioned** here (column + enum + type) so the questionnaire branch merges drop‑in — it just calls `upsertProfile({ personality_type })`.
+## Round 4 — Unit guide (stub-first) — NEXT
 
-## Later rounds
+The headline feature. See the full spec + task plan:
+- Spec: `docs/superpowers/specs/2026-07-16-round4-unit-guide-design.md`
+- Plan: `docs/superpowers/plans/2026-07-16-round4-unit-guide.md`
 
-- **Round 2 — Goal setting (IN PROGRESS on `feat/guide-goal-setting`).** Store a goal as a human‑readable **title** + optional links to catalog rows. Entry points: a **Guide** button in `career.tsx` header (next to the heart) and a text box on the Guide tab.
-- **Career specializations.** New `career_specializations` table off `careers` (e.g. "Software Engineer" → "ML Engineer at Google"), each with a blurb/link + Guide button.
-- **Round 3 — Roadmap.** `guide_goals`/`guide_tasks` tables + Duolingo‑style path UI (locked/current/done) + step‑detail screen. Generation engine stubbed first (mock steps), then chosen — leading candidate: LLM via a Supabase Edge Function (key stays server‑side, results cached), rule‑based templating as fallback.
+Summary: new `guide_units`/`guide_steps`/`guide_choices`/`progress_summaries` tables (per-user RLS); a pure `UnitGenerator` seam (mock now, **LLM via Supabase Edge Function later** — drop-in behind `EXPO_PUBLIC_USE_LLM_GUIDE`); `services/guide.ts` (`getGuideUnits`/`ensureFirstUnit`/`markStepDone`/`submitChoice`); a Duolingo-style path UI replacing the "roadmap coming soon" card on the Guide tab (`app/(tabs)/index.tsx`), with step and terminal-choice screens. Each unit ends in a branching decision; completing steps + choosing generates the next unit.
+
+## Round 5 — Parent accounts (planned)
+
+Child share-code link (`link_code` + `ensure_link_code`), a locked-down `link_child_by_code` RPC, and the critical cross-user RLS: a linked parent reads only the child's `progress_summaries` feed (never the raw path), via a `SECURITY DEFINER is_parent_of` helper. Role-based routing (parent vs student). Detailed design in `/Users/arielgalor/.claude/plans/memoized-napping-spring.md`.
+
+## Deferred
+
+- **Real LLM generation** — the Edge Function `generate-unit` (API key server-side) behind the `UnitGenerator` seam. Everything in Round 4 is built around it so it's a drop-in swap.
+- Career specializations (nested specific careers). Recommendation tuning beyond primary/secondary overlap.
 
 ## Polish (ongoing)
 
 - Real images for careers/activities (`image_url` columns exist).
 - Search debounce; richer filters. City picker (vs free text).
-- Sign-up UX pass: consider splitting into a few sequential pages/steps; refine the +add-majors flow, grade selector, field wording/order.
+- Sign-up UX pass (multi-page split; refine +add-majors/grade selector).
+- `RatingScale` hardcodes a font value instead of `fonts.body`; questionnaire doesn't prefill a saved type on retake (cosmetic).
 - Use `constants/theme` everywhere; tab icons/labels; consider dark mode.
-- Drop the `router.push(... as any)` casts once expo‑router route types regenerate.
+- Drop the `router.push(... as any)` casts once expo-router route types regenerate.
 - Consistent loading/error states.
 
-## Notes for later (no‑context resume)
+## Notes for later (no-context resume)
 
 - Owner must keep Supabase **"Confirm email" OFF** for dev.
-- Shared merge‑touch‑point: `app/personal-details.tsx` (profile vs questionnaire sections).
+- Shared merge-touch-point with the collaborator: `app/personal-details.tsx` (profile vs questionnaire sections). The collaborator's `feat/questionnaire-recommendations` is now fully contained in `main`.
 - Full design detail: `/Users/arielgalor/.claude/plans/memoized-napping-spring.md`. Build history: git + `.superpowers/sdd/progress.md`.
