@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase, type PersonalityType } from "./supabase";
 
 export type Career = {
   id: string;
@@ -14,6 +14,7 @@ export type Career = {
   workEnvironment: string;
   demandLevel: string;
   tags: string[];
+  hollandCodes: string[];
   imageUrl: string | null;
 };
 
@@ -33,7 +34,7 @@ export type CareerFilters = { subjects?: string[]; demandLevel?: string; tags?: 
 export type ActivityFilters = { category?: string; maxBudget?: number | null; location?: string };
 
 const CAREER_COLS =
-  "id,title,description,required_education,required_skills,recommended_subjects,salary_min,salary_max,salary_currency,salary_period,work_environment,demand_level,tags,image_url";
+  "id,title,description,required_education,required_skills,recommended_subjects,salary_min,salary_max,salary_currency,salary_period,work_environment,demand_level,tags,holland_codes,image_url";
 const ACTIVITY_COLS =
   "id,title,category,location,price_amount,price_currency,description,tags,image_url";
 
@@ -46,7 +47,7 @@ function mapCareer(r: any): Career {
     salaryMin: r.salary_min, salaryMax: r.salary_max,
     salaryCurrency: r.salary_currency, salaryPeriod: r.salary_period,
     workEnvironment: r.work_environment, demandLevel: r.demand_level,
-    tags: r.tags ?? [], imageUrl: r.image_url ?? null,
+    tags: r.tags ?? [], hollandCodes: r.holland_codes ?? [], imageUrl: r.image_url ?? null,
   };
 }
 function mapActivity(r: any): Activity {
@@ -112,4 +113,30 @@ export async function getCareersByIds(ids: string[]): Promise<Career[]> {
   const { data, error } = await supabase.from("careers").select(CAREER_COLS).in("id", ids);
   if (error) { console.error("getCareersByIds", error); return []; }
   return (data ?? []).map(mapCareer);
+}
+
+// Recommend catalog careers for a RIASEC personality type. Fetches careers whose
+// holland_codes overlap the primary (+ optional secondary) type, then ranks by
+// fit: codes are stored strongest-first, so index 0 weighs most.
+export async function recommendCareers(
+  primary: PersonalityType,
+  secondary: PersonalityType | null = null,
+  limit = 5
+): Promise<Career[]> {
+  const codes = secondary ? [primary, secondary] : [primary];
+  const { data, error } = await supabase.from("careers").select(CAREER_COLS).overlaps("holland_codes", codes);
+  if (error) { console.error("recommendCareers", error); return []; }
+  const scored = (data ?? []).map(mapCareer).map((c) => {
+    const h = c.hollandCodes;
+    let score = 0;
+    if (h[0] === primary) score += 3;
+    else if (h.includes(primary)) score += 2;
+    if (secondary) {
+      if (h[0] === secondary) score += 1.5;
+      else if (h.includes(secondary)) score += 1;
+    }
+    return { c, score };
+  });
+  scored.sort((a, b) => b.score - a.score || a.c.title.localeCompare(b.c.title));
+  return scored.slice(0, limit).map((s) => s.c);
 }
