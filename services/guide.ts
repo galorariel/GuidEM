@@ -114,20 +114,22 @@ export async function buildContext(userId: string, unitIndex: number): Promise<G
     .order("unit_index");
   if (error) {
     console.error("buildContext priorChoices", error);
-  } else {
-    for (const row of data ?? []) {
-      const choice = oneOf((row as any).guide_choices);
-      if (!choice || choice.selected_option_id == null) continue;
-      const options = (choice.options ?? []) as ChoiceOption[];
-      const optionLabel =
-        options.find((o) => o.id === choice.selected_option_id)?.label ?? choice.selected_option_id;
-      priorChoices.push({
-        unitIndex: (row as any).unit_index,
-        prompt: choice.prompt,
-        optionId: choice.selected_option_id,
-        optionLabel,
-      });
-    }
+    // Fail loud on the write path: a swallowed error here would silently
+    // generate an under-personalized unit that then gets baked in permanently.
+    throw error;
+  }
+  for (const row of data ?? []) {
+    const choice = oneOf((row as any).guide_choices);
+    if (!choice || choice.selected_option_id == null) continue;
+    const options = (choice.options ?? []) as ChoiceOption[];
+    const optionLabel =
+      options.find((o) => o.id === choice.selected_option_id)?.label ?? choice.selected_option_id;
+    priorChoices.push({
+      unitIndex: (row as any).unit_index,
+      prompt: choice.prompt,
+      optionId: choice.selected_option_id,
+      optionLabel,
+    });
   }
 
   return {
@@ -192,6 +194,24 @@ export async function submitChoice(
 ): Promise<GuideUnitFull> {
   if (!unit.choice) throw new Error("No choice for this unit");
   if (unit.steps.some((s) => s.completedAt == null)) throw new Error("Finish all steps first");
+
+  // Idempotent re-entry: if this unit was already submitted (e.g. a retry after
+  // a transient error mid-sequence, or a stale double-tap), don't re-write the
+  // choice/unit/summary — just ensure the next unit exists and return it. This
+  // avoids duplicate progress_summaries rows.
+  if (unit.status === "done" || unit.choice.selectedOptionId != null) {
+    const ctx = await buildContext(userId, unit.unitIndex + 1);
+    const gen = await generator.generateUnit(ctx);
+    return persistGeneratedUnit(
+      userId,
+      unit.unitIndex + 1,
+      gen,
+      ctx,
+      "active",
+      unit.choice.id,
+      unit.choice.selectedOptionId ?? optionId
+    );
+  }
 
   const now = new Date().toISOString();
 
