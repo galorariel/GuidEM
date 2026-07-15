@@ -1,8 +1,14 @@
+import { router } from "expo-router";
 import React, { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import CareerCard from "../../components/CareerCard";
 import CustomButton from "../../components/CustomButton";
 import RatingScale from "../../components/RatingScale"; // Import the new RatingScale component
 import { colors, fonts } from "../../constants/theme";
+import { useAuth } from "../../hooks/AuthContext";
+import { authErrorMessage } from "../../services/authErrors";
+import { recommendCareers, type Career } from "../../services/catalog";
+import { upsertProfile, setCareerGoal, type PersonalityType } from "../../services/supabase";
 
 const HOLLAND_CODES = ["Realistic", "Investigative", "Artistic", "Social", "Enterprising", "Conventional"];
 
@@ -58,10 +64,14 @@ const questions = [
 ];
 
 export default function QuestionnaireTab() {
+  const { user } = useAuth();
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>(new Array(questions.length).fill(0)); // Initialize with 0 for no selection
   const [saving, setSaving] = useState(false);
+  const [resultPrimary, setResultPrimary] = useState<string | null>(null);
+  const [resultSecondary, setResultSecondary] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<Career[]>([]);
 
-  const calculateResults = () => {
+  const calculateResults = async () => {
     const scores = new Array(HOLLAND_CODES.length).fill(0);
 
     selectedAnswers.forEach((rating, questionIndex) => {
@@ -81,17 +91,46 @@ export default function QuestionnaireTab() {
     scoredCategories.sort((a, b) => b.score - a.score);
 
     // Determine primary and secondary types
-    const primaryType = scoredCategories[0];
-    const secondaryType = scoredCategories.length > 1 ? scoredCategories[1] : null;
+    const topCategory = scoredCategories[0];
+    const secondCategory = scoredCategories.length > 1 ? scoredCategories[1] : null;
 
-    if (primaryType.score > 0) {
-      let resultMessage = `Your primary personality type is: **${primaryType.name}** with a score of ${primaryType.score}.`;
-      if (secondaryType && secondaryType.score > 0) {
-        resultMessage += `\nYour secondary personality type is: **${secondaryType.name}** with a score of ${secondaryType.score}.`;
-      }
-      Alert.alert("Your Personality Types", resultMessage);
-    } else {
+    if (topCategory.score <= 0) {
       Alert.alert("No selections made", "Please rate some activities to get your personality types.");
+      return;
+    }
+
+    const primaryLabel = topCategory.name;
+    const secondaryLabel = secondCategory && secondCategory.score > 0 ? secondCategory.name : null;
+    // The DB CHECK on profiles.personality_type only accepts the six lowercase values.
+    const primaryType = primaryLabel.toLowerCase() as PersonalityType;
+    const secondaryType = secondaryLabel ? (secondaryLabel.toLowerCase() as PersonalityType) : null;
+
+    if (!user) {
+      Alert.alert("Sign in required", "Please sign in to save your results.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await upsertProfile(user.id, { personality_type: primaryType });
+      const recs = await recommendCareers(primaryType, secondaryType, 5);
+      setResultPrimary(primaryLabel);
+      setResultSecondary(secondaryLabel);
+      setRecommendations(recs);
+    } catch (err: any) {
+      Alert.alert("Something went wrong", authErrorMessage(err, "Please try again."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onPickGoal = async (career: Career) => {
+    if (!user) return;
+    try {
+      await setCareerGoal(user.id, career.title, career.id);
+      router.navigate("/(tabs)" as any); // jump to the Guide tab
+    } catch (err: any) {
+      Alert.alert("Something went wrong", authErrorMessage(err, "Please try again."));
     }
   };
 
@@ -118,7 +157,36 @@ export default function QuestionnaireTab() {
         </View>
       ))}
 
-      <CustomButton title="Get My Personality Types" onPress={calculateResults} disabled={saving} />
+      <View style={styles.submitRow}>
+        <CustomButton
+          title={saving ? "Saving..." : "Get My Personality Types"}
+          onPress={calculateResults}
+          disabled={saving}
+        />
+        {saving ? <ActivityIndicator style={styles.spinner} color={colors.accent} /> : null}
+      </View>
+
+      {resultPrimary ? (
+        <View style={styles.resultsContainer}>
+          <Text style={styles.resultsTitle}>
+            Your type: {resultPrimary}{resultSecondary ? ` / ${resultSecondary}` : ""}
+          </Text>
+
+          {recommendations.length > 0 ? (
+            <>
+              <Text style={styles.resultsSubtitle}>Recommended careers</Text>
+              {recommendations.map((career) => (
+                <CareerCard
+                  key={career.id}
+                  item={career}
+                  onPress={() => router.push(`/career?id=${career.id}` as any)}
+                  onSetGoal={() => onPickGoal(career)}
+                />
+              ))}
+            </>
+          ) : null}
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
@@ -128,4 +196,9 @@ const styles = StyleSheet.create({
   h1: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading, marginBottom: 6 },
   sub: { fontFamily: fonts.body, color: colors.accent, marginBottom: 18 },
   questionContainer: { marginBottom: 15 },
+  submitRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  spinner: { marginTop: 10 },
+  resultsContainer: { marginTop: 24 },
+  resultsTitle: { fontSize: 18, fontFamily: fonts.heading, color: colors.heading, marginBottom: 12 },
+  resultsSubtitle: { fontFamily: fonts.bodyBold, color: colors.accent, marginBottom: 8 },
 });
