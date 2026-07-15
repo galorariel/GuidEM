@@ -83,6 +83,7 @@ Child routes (step/choice detail) as needed under the existing stack.
 - **Cross-tab goal freshness.** Search + questionnaire refresh goal/saved state on focus (`useFocusEffect`) so the compass/♥ never go stale after a goal change on another tab.
 
 ## Before enabling the real LLM (`EXPO_PUBLIC_USE_LLM_GUIDE=true`) — REQUIRED
-These are latent with the deterministic mock (pure, can't fail mid-write) but become reachable once `edgeGenerator` makes fallible network calls:
-1. **Atomic unit persistence.** `persistGeneratedUnit` commits the unit row before its steps/choice (no transaction). If steps/choice fail after the unit commits, a retry hits `ignoreDuplicates` → seeding is skipped → an orphan unit with no steps/choice (a UI dead end). Fix: wrap unit+steps+choice in one RPC/transaction, OR on re-read detect `steps.length === 0 && !choice` and re-seed.
-2. **Successor reconcile.** If a choice commits (unit `done`) but next-unit generation fails, there's no UI path to regenerate the missing successor (`ensureFirstUnit` only guarantees unit 0). Fix: a reconcile that regenerates when the latest `done` unit has no successor.
+1. **Atomic unit persistence.** `persistGeneratedUnit` commits the unit row before its steps/choice (no transaction). If steps/choice fail after the unit commits, a retry hits `ignoreDuplicates` → seeding is skipped → an orphan unit with no steps/choice (a UI dead end). Fix: wrap unit+steps+choice in one RPC/transaction, OR on re-read detect `steps.length === 0 && !choice` and re-seed. (Still open — low-probability with the mock; do before the fallible LLM generator.)
+
+## Resolved
+2. ~~**Successor reconcile.**~~ DONE — `ensureFirstUnit` now self-heals: if the last unit is `done` with a decided choice but has no successor, it regenerates it on next Guide focus (so a failed mid-advance generation recovers automatically).

@@ -179,19 +179,43 @@ export async function ensureFirstUnit(userId: string): Promise<GuideUnitFull> {
   const goalTitle = profile?.career_goal ?? "";
   const goalCareerId = profile?.career ?? null;
 
-  const units = await getGuideUnits(userId);
+  let units = await getGuideUnits(userId);
   if (units.length) {
     const first = units.find((u) => u.unitIndex === 0) ?? units[0];
     // A new goal = a new path: if the goal changed since this path started
     // (unit 0's snapshot no longer matches the profile), reset and regenerate.
-    if (first.goalTitle === goalTitle && first.goalCareerId === goalCareerId) {
-      return first;
+    if (first.goalTitle !== goalTitle || first.goalCareerId !== goalCareerId) {
+      await clearGuide(userId);
+      units = [];
     }
-    await clearGuide(userId);
   }
-  const ctx = await buildContext(userId, 0);
-  const gen = await generator.generateUnit(ctx);
-  return persistGeneratedUnit(userId, 0, gen, ctx, "active", null, null);
+
+  // No path yet → generate unit 0.
+  if (!units.length) {
+    const ctx = await buildContext(userId, 0);
+    const gen = await generator.generateUnit(ctx);
+    return persistGeneratedUnit(userId, 0, gen, ctx, "active", null, null);
+  }
+
+  // Self-heal a missing successor: if the last unit is decided ('done') but its
+  // next unit was never generated (e.g. generation failed mid-advance), make it
+  // now so the path never dead-ends. persistGeneratedUnit is idempotent.
+  const last = units.reduce((a, b) => (b.unitIndex > a.unitIndex ? b : a));
+  if (last.status === "done" && last.choice && last.choice.selectedOptionId) {
+    const ctx = await buildContext(userId, last.unitIndex + 1);
+    const gen = await generator.generateUnit(ctx);
+    return persistGeneratedUnit(
+      userId,
+      last.unitIndex + 1,
+      gen,
+      ctx,
+      "active",
+      last.choice.id,
+      last.choice.selectedOptionId
+    );
+  }
+
+  return units.find((u) => u.unitIndex === 0) ?? units[0];
 }
 
 // ---- Writes ------------------------------------------------------------------
