@@ -75,7 +75,7 @@ export default function Search() {
     if (!user) { router.push("/sign-in"); return; }
     try {
       await setCareerGoal(user.id, title, id);
-      router.navigate("/(tabs)" as any); // jump to the Guide tab
+      router.replace("/(tabs)" as any); // jump to the Guide tab (replace refocuses it → path regenerates)
     } catch (err: any) {
       Alert.alert("Couldn't set goal", authErrorMessage(err, "Please try again."));
     }

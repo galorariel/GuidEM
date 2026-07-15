@@ -187,7 +187,7 @@ export default function QuestionnaireTab() {
     try {
       await setCareerGoal(user.id, career.title, career.id);
       setGoalCareerId(career.id); // reflect the new goal so the compass fills on return
-      router.navigate("/(tabs)" as any); // jump to the Guide tab
+      router.replace("/(tabs)" as any); // jump to the Guide tab (replace refocuses it → path regenerates)
     } catch (err: any) {
       Alert.alert("Something went wrong", authErrorMessage(err, "Please try again."));
     }
