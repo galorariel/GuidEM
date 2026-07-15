@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import CareerCard from "../../components/CareerCard";
 import CustomButton from "../../components/CustomButton";
@@ -8,7 +8,7 @@ import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
 import { authErrorMessage } from "../../services/authErrors";
 import { recommendCareers, type Career } from "../../services/catalog";
-import { addSaved, getSavedIds, removeSaved, setCareerGoal, upsertProfile, type PersonalityType } from "../../services/supabase";
+import { addSaved, getProfile, getSavedIds, removeSaved, setCareerGoal, upsertProfile, type PersonalityType } from "../../services/supabase";
 
 const HOLLAND_CODES = ["Realistic", "Investigative", "Artistic", "Social", "Enterprising", "Conventional"];
 
@@ -63,8 +63,11 @@ const questions = [
   { text: "Fix a broken faucet", categories: [true, false, false, false, false, false] },
 ];
 
+type Mode = "loading" | "quiz" | "results";
+
 export default function QuestionnaireTab() {
   const { user } = useAuth();
+  const [mode, setMode] = useState<Mode>("loading");
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>(new Array(questions.length).fill(0)); // Initialize with 0 for no selection
   const [saving, setSaving] = useState(false);
   const [resultPrimary, setResultPrimary] = useState<string | null>(null);
@@ -72,10 +75,34 @@ export default function QuestionnaireTab() {
   const [recommendations, setRecommendations] = useState<Career[]>([]);
   const [savedCareerIds, setSavedCareerIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!user) { setSavedCareerIds([]); return; }
-    getSavedIds(user.id, "career").then(setSavedCareerIds);
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  // Stateful tab: if the test was already taken (profiles.personality_type set),
+  // show the "completed" results view; otherwise the quiz. Loads on mount and on
+  // user change. The tab stays mounted across tab switches and personality_type
+  // only changes from a submit here, so we deliberately do NOT refresh on focus
+  // (that would clobber an in-progress "Retake").
+  const load = useCallback(async () => {
+    if (!user) { setSavedCareerIds([]); setMode("quiz"); return; }
+    setSavedCareerIds(await getSavedIds(user.id, "career"));
+    const profile = await getProfile(user.id);
+    if (profile?.personality_type) {
+      setResultPrimary(cap(profile.personality_type));
+      setResultSecondary(null);
+      setRecommendations(await recommendCareers(profile.personality_type, null, 5));
+      setMode("results");
+    } else {
+      setMode("quiz");
+    }
   }, [user]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const retake = () => {
+    setSelectedAnswers(new Array(questions.length).fill(0));
+    setRecommendations([]);
+    setMode("quiz");
+  };
 
   const toggleSaveCareer = async (id: string) => {
     if (!user) return;
@@ -134,6 +161,7 @@ export default function QuestionnaireTab() {
       setResultPrimary(primaryLabel);
       setResultSecondary(secondaryLabel);
       setRecommendations(recs);
+      setMode("results");
     } catch (err: any) {
       Alert.alert("Something went wrong", authErrorMessage(err, "Please try again."));
     } finally {
@@ -162,29 +190,12 @@ export default function QuestionnaireTab() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={styles.container}>
       <Text style={styles.h1}>Career Questionnaire</Text>
-      <Text style={styles.sub}>Rate how much you like each activity (1-5) to discover your personality types.</Text>
 
-      {questions.map((question, index) => (
-        <View key={index} style={styles.questionContainer}>
-          <RatingScale
-            label={question.text}
-            selectedValue={selectedAnswers[index]}
-            onValueChange={(value) => handleRatingChange(index, value)}
-          />
-        </View>
-      ))}
-
-      <View style={styles.submitRow}>
-        <CustomButton
-          title={saving ? "Saving..." : "Get My Personality Types"}
-          onPress={calculateResults}
-          disabled={saving}
-        />
-        {saving ? <ActivityIndicator style={styles.spinner} color={colors.accent} /> : null}
-      </View>
-
-      {resultPrimary ? (
+      {mode === "loading" ? (
+        <ActivityIndicator style={{ marginTop: 30 }} color={colors.accent} />
+      ) : mode === "results" ? (
         <View style={styles.resultsContainer}>
+          <Text style={styles.sub}>You&apos;ve completed the personality test.</Text>
           <Text style={styles.resultsTitle}>
             Your type: {resultPrimary}{resultSecondary ? ` / ${resultSecondary}` : ""}
           </Text>
@@ -203,9 +214,36 @@ export default function QuestionnaireTab() {
                 />
               ))}
             </>
-          ) : null}
+          ) : (
+            <Text style={styles.sub}>No recommendations found for your type.</Text>
+          )}
+
+          <CustomButton title="Retake test" onPress={retake} style={styles.retakeBtn} />
         </View>
-      ) : null}
+      ) : (
+        <>
+          <Text style={styles.sub}>Rate how much you like each activity (1-5) to discover your personality types.</Text>
+
+          {questions.map((question, index) => (
+            <View key={index} style={styles.questionContainer}>
+              <RatingScale
+                label={question.text}
+                selectedValue={selectedAnswers[index]}
+                onValueChange={(value) => handleRatingChange(index, value)}
+              />
+            </View>
+          ))}
+
+          <View style={styles.submitRow}>
+            <CustomButton
+              title={saving ? "Saving..." : "Get My Personality Types"}
+              onPress={calculateResults}
+              disabled={saving}
+            />
+            {saving ? <ActivityIndicator style={styles.spinner} color={colors.accent} /> : null}
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -220,4 +258,5 @@ const styles = StyleSheet.create({
   resultsContainer: { marginTop: 24 },
   resultsTitle: { fontSize: 18, fontFamily: fonts.heading, color: colors.heading, marginBottom: 12 },
   resultsSubtitle: { fontFamily: fonts.bodyBold, color: colors.accent, marginBottom: 8 },
+  retakeBtn: { backgroundColor: colors.muted, marginTop: 12 },
 });
