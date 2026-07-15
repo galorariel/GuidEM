@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import CareerCard from "../../components/CareerCard";
 import CustomButton from "../../components/CustomButton";
@@ -8,7 +8,7 @@ import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
 import { authErrorMessage } from "../../services/authErrors";
 import { recommendCareers, type Career } from "../../services/catalog";
-import { upsertProfile, setCareerGoal, type PersonalityType } from "../../services/supabase";
+import { addSaved, getSavedIds, removeSaved, setCareerGoal, upsertProfile, type PersonalityType } from "../../services/supabase";
 
 const HOLLAND_CODES = ["Realistic", "Investigative", "Artistic", "Social", "Enterprising", "Conventional"];
 
@@ -70,6 +70,23 @@ export default function QuestionnaireTab() {
   const [resultPrimary, setResultPrimary] = useState<string | null>(null);
   const [resultSecondary, setResultSecondary] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<Career[]>([]);
+  const [savedCareerIds, setSavedCareerIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!user) { setSavedCareerIds([]); return; }
+    getSavedIds(user.id, "career").then(setSavedCareerIds);
+  }, [user]);
+
+  const toggleSaveCareer = async (id: string) => {
+    if (!user) return;
+    if (savedCareerIds.includes(id)) {
+      await removeSaved(user.id, id, "career");
+      setSavedCareerIds((p) => p.filter((x) => x !== id));
+    } else {
+      await addSaved(user.id, id, "career");
+      setSavedCareerIds((p) => [...p, id]);
+    }
+  };
 
   const calculateResults = async () => {
     const scores = new Array(HOLLAND_CODES.length).fill(0);
@@ -179,6 +196,8 @@ export default function QuestionnaireTab() {
                 <CareerCard
                   key={career.id}
                   item={career}
+                  isSaved={savedCareerIds.includes(career.id)}
+                  onToggleSave={() => toggleSaveCareer(career.id)}
                   onPress={() => router.push(`/career?id=${career.id}` as any)}
                   onSetGoal={() => onPickGoal(career)}
                 />
