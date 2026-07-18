@@ -1,51 +1,58 @@
-# Plan — AI Career Guide
+# Plan — AI Career Guide Real Path Generation
 
-Concept: see `guidem.md`. The app is built in **rounds** toward its headline feature — the **AI Career Guide**: a Duolingo-like personalized path of small steps toward a chosen career, each giving real-life, location-aware how-to.
+Concept: see `guidem.md` and `roadmap.md`. We are focusing on delivering real-world, AI-generated learning paths that build a student's career toolset using actual web sources (courses, articles, videos, tools) with external links.
 
-**Branch/merge strategy (trunk-style):** finished, reviewed rounds land on `main` promptly; each new round branches fresh off `main`. Owner owns all migrations (applied to the shared Supabase before device tests). Each round runs subagent-driven (implementer + task review per task, opus whole-branch review) with device checkpoints.
+---
 
-## Status
+## Current Status
 
-| Round | Feature | State |
-|-------|---------|-------|
-| 1 | Sign-up personalization (city/grade/majors + `personality_type` column) + editable Profile | ✅ merged |
-| 2 | Career goal: set/clear from Search, career detail, Guide text box | ✅ merged |
-| 3 | Questionnaire: merged collaborator's RIASEC quiz → persist `personality_type` → `recommendCareers` → set goal (`careers.holland_codes`) | ✅ merged |
-| 3.1 | Questionnaire tab is stateful: quiz until taken, then a completed view (type + recommendations + Retake) | ✅ merged |
-| **4** | **Unit guide (stub-first): the roadmap** | **NEXT** |
-| 5 | Parent accounts (child share-code + summary feed) | planned |
+| Round | Feature | State | Description |
+|-------|---------|-------|-------------|
+| 1 | Sign-up Personalization | ✅ merged | City/grade/majors + `personality_type` column on `profiles` |
+| 2 | Career Goal Mechanic | ✅ merged | Set/clear goal from Search, Career Details, and Guide |
+| 3 | Questionnaire Integration | ✅ merged | RIASEC quiz -> persist `personality_type` -> recommend careers |
+| 3.1 | Stateful Questionnaire | ✅ merged | Quiz view if not taken, results view + retake option if completed |
+| 4 | Unit Guide Foundation | ✅ merged | Two-phase guide structure, specialization choices, mock content |
+| 4.1 | Developer Settings | ✅ merged | Reset learning path action relocated to Profile |
+| **5** | **Real-world External Links** | **NEXT** | Renders external URLs (Google courses, DevTools docs, etc.) in step UI |
+| **6** | **AI Path Generation (LLM)** | **NEXT** | Deploy `generate-unit` Supabase Edge Function using Gemini to create paths |
 
-Working end-to-end today: sign-up → RIASEC quiz → personality-based recommendations → set a career goal → goal shows on the Guide tab.
+---
 
-## Round 4 — Unit guide (stub-first) — NEXT
+## Round 5 — Real-world External Links (NEXT)
 
-The headline feature. See the full spec + task plan:
-- Spec: `docs/superpowers/specs/2026-07-16-round4-unit-guide-design.md`
-- Plan: `docs/superpowers/plans/2026-07-16-round4-unit-guide.md`
+Ensure our frontend steps can display and open external resources in the native web browser or external apps (e.g. YouTube, Google Chrome, LinkedIn).
 
-Summary: new `guide_units`/`guide_steps`/`guide_choices`/`progress_summaries` tables (per-user RLS); a pure `UnitGenerator` seam (mock now, **LLM via Supabase Edge Function later** — drop-in behind `EXPO_PUBLIC_USE_LLM_GUIDE`); `services/guide.ts` (`getGuideUnits`/`ensureFirstUnit`/`markStepDone`/`submitChoice`); a Duolingo-style path UI replacing the "roadmap coming soon" card on the Guide tab (`app/(tabs)/index.tsx`), with step and terminal-choice screens. Each unit ends in a branching decision; completing steps + choosing generates the next unit.
+### 1. Step Payload Schema
+We will support optional external link properties in `guide_steps.payload`:
+```typescript
+export interface GeneratedStep {
+  kind: StepKind;
+  title: string;
+  body: string;
+  payload?: {
+    externalUrl?: string; // e.g. "https://grow.google/certificates/ux-design"
+    linkLabel?: string;   // e.g. "Open Google UX Design Course"
+  };
+}
+```
 
-## Round 5 — Parent accounts (planned)
+### 2. UI Updates (`app/(tabs)/index.tsx`)
+- Inside the expanded step details drawer, if `step.payload.externalUrl` is present:
+  - Render a prominent action button labeled with `step.payload.linkLabel` (or a fallback like "Open Link").
+  - Tapping this button opens the link using React Native's `Linking.openURL(url)` to launch it in the device's native browser or respective app (e.g. YouTube or LinkedIn).
 
-Child share-code link (`link_code` + `ensure_link_code`), a locked-down `link_child_by_code` RPC, and the critical cross-user RLS: a linked parent reads only the child's `progress_summaries` feed (never the raw path), via a `SECURITY DEFINER is_parent_of` helper. Role-based routing (parent vs student). Detailed design in `/Users/arielgalor/.claude/plans/memoized-napping-spring.md`.
+---
 
-## Deferred
+## Round 6 — AI Path Generation (LLM) (NEXT)
 
-- **Real LLM generation** — the Edge Function `generate-unit` (API key server-side) behind the `UnitGenerator` seam. Everything in Round 4 is built around it so it's a drop-in swap.
-- Career specializations (nested specific careers). Recommendation tuning beyond primary/secondary overlap.
+Replace the deterministic mock generator with a live LLM-powered Supabase Edge Function that generates actual, highly targeted learning paths utilizing web resources.
 
-## Polish (ongoing)
+### 1. Supabase Edge Function (`supabase/functions/generate-unit`)
+- Create a new Edge Function that receives the `GenerateContext` (or `ChoiceGenerateContext`).
+- Instructs Gemini (using system instructions) to design a unit plan building the student's toolset.
+- Prompts Gemini to supply real-world URLs for courses, articles, tutorials, DevTools documentation, etc., fitting the career goal and specialization.
+- The prompt will use the student's Israel-based location (city), current grade, and majors to contextualize the learning steps.
 
-- Real images for careers/activities (`image_url` columns exist).
-- Search debounce; richer filters. City picker (vs free text).
-- Sign-up UX pass (multi-page split; refine +add-majors/grade selector).
-- `RatingScale` hardcodes a font value instead of `fonts.body`; questionnaire doesn't prefill a saved type on retake (cosmetic).
-- Use `constants/theme` everywhere; tab icons/labels; consider dark mode.
-- Drop the `router.push(... as any)` casts once expo-router route types regenerate.
-- Consistent loading/error states.
-
-## Notes for later (no-context resume)
-
-- Owner must keep Supabase **"Confirm email" OFF** for dev.
-- Shared merge-touch-point with the collaborator: `app/personal-details.tsx` (profile vs questionnaire sections). The collaborator's `feat/questionnaire-recommendations` is now fully contained in `main`.
-- Full design detail: `/Users/arielgalor/.claude/plans/memoized-napping-spring.md`. Build history: git + `.superpowers/sdd/progress.md`.
+### 2. Transaction and Error Safety
+- Ensure robust database inserts for the Edge Function outputs. Add transaction checks to ensure the unit and steps are committed atomically.

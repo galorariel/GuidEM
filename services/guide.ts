@@ -1,12 +1,13 @@
 import {
   generator,
+  type ChoiceGenerateContext,
   type ChoiceOption,
   type GenerateContext,
   type GeneratedUnit,
   type StepKind,
   type UnitStatus,
 } from "./guide/generator";
-import { supabase, getProfile } from "./supabase";
+import { supabase, getProfile, upsertProfile, updateSpecialization } from "./supabase";
 
 // ---- Camel-cased shapes (mirror the snake_case guide_* rows) --------------
 
@@ -41,6 +42,7 @@ export interface GuideUnit {
   goalCareerId: string | null;
   sourceChoiceId: string | null;
   sourceOptionId: string | null;
+  journeySummary: string | null;
 }
 
 export type GuideUnitFull = GuideUnit & { steps: GuideStep[]; choice: GuideChoice | null };
@@ -59,6 +61,7 @@ function mapUnit(r: any): GuideUnit {
     goalCareerId: r.goal_career_id ?? null,
     sourceChoiceId: r.source_choice_id ?? null,
     sourceOptionId: r.source_option_id ?? null,
+    journeySummary: r.journey_summary ?? null,
   };
 }
 
@@ -106,14 +109,15 @@ function mapUnitFull(r: any): GuideUnitFull {
 export async function buildContext(userId: string, unitIndex: number): Promise<GenerateContext> {
   const profile = await getProfile(userId);
 
-  const priorChoices: GenerateContext["priorChoices"] = [];
+  // Build structured choice history with specialization trail
+  const choiceHistory: GenerateContext["choiceHistory"] = [];
   const { data, error } = await supabase
     .from("guide_units")
     .select("unit_index, guide_choices(prompt,options,selected_option_id)")
     .eq("user_id", userId)
     .order("unit_index");
   if (error) {
-    console.error("buildContext priorChoices", error);
+    console.error("buildContext choiceHistory", error);
     // Fail loud on the write path: a swallowed error here would silently
     // generate an under-personalized unit that then gets baked in permanently.
     throw error;
@@ -122,19 +126,33 @@ export async function buildContext(userId: string, unitIndex: number): Promise<G
     const choice = oneOf((row as any).guide_choices);
     if (!choice || choice.selected_option_id == null) continue;
     const options = (choice.options ?? []) as ChoiceOption[];
-    const optionLabel =
-      options.find((o) => o.id === choice.selected_option_id)?.label ?? choice.selected_option_id;
-    priorChoices.push({
+    const selectedOption = options.find((o) => o.id === choice.selected_option_id);
+    const optionLabel = selectedOption?.label ?? choice.selected_option_id;
+    const narrowedTo = selectedOption?.specializationLabel ?? optionLabel;
+    choiceHistory.push({
       unitIndex: (row as any).unit_index,
-      prompt: choice.prompt,
-      optionId: choice.selected_option_id,
-      optionLabel,
+      chose: optionLabel,
+      narrowedTo,
     });
+  }
+
+  // Get the latest journey summary from the most recent unit
+  let journeySummary: string | null = null;
+  if (unitIndex > 0) {
+    const { data: latestUnit } = await supabase
+      .from("guide_units")
+      .select("journey_summary")
+      .eq("user_id", userId)
+      .order("unit_index", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    journeySummary = latestUnit?.journey_summary ?? null;
   }
 
   return {
     userId,
     goalTitle: profile?.career_goal ?? "",
+    currentSpecialization: profile?.career_specialization ?? null,
     goalCareerId: profile?.career ?? null,
     personalityType: profile?.personality_type ?? null,
     profile: {
@@ -145,7 +163,17 @@ export async function buildContext(userId: string, unitIndex: number): Promise<G
       majors: profile?.majors ?? [],
     },
     unitIndex,
-    priorChoices,
+    careerPath: profile?.career_path ?? [],
+    choiceHistory,
+    journeySummary,
+  };
+}
+
+// Build an extended context for choice generation (includes completed step info)
+function buildChoiceContext(ctx: GenerateContext, steps: GuideStep[]): ChoiceGenerateContext {
+  return {
+    ...ctx,
+    completedSteps: steps.map((s) => ({ kind: s.kind, title: s.title })),
   };
 }
 
@@ -174,6 +202,22 @@ export async function clearGuide(userId: string): Promise<void> {
   }
 }
 
+// Reset the learning path without touching the career goal or personal info.
+// Wipes guide units (FK cascade clears steps + choices), resets specialization
+// back to the original broad goal, and regenerates a fresh unit 0.
+export async function resetLearningPath(userId: string): Promise<void> {
+  await clearGuide(userId);
+
+  // Reset specialization back to the original broad goal
+  const profile = await getProfile(userId);
+  if (profile?.career_goal) {
+    await upsertProfile(userId, {
+      career_specialization: profile.career_goal,
+      career_path: [profile.career_goal],
+    });
+  }
+}
+
 export async function ensureFirstUnit(userId: string): Promise<GuideUnitFull> {
   const profile = await getProfile(userId);
   const goalTitle = profile?.career_goal ?? "";
@@ -190,7 +234,7 @@ export async function ensureFirstUnit(userId: string): Promise<GuideUnitFull> {
     }
   }
 
-  // No path yet → generate unit 0.
+  // No path yet → generate unit 0 (without a choice — choices come post-completion).
   if (!units.length) {
     const ctx = await buildContext(userId, 0);
     const gen = await generator.generateUnit(ctx);
@@ -202,6 +246,13 @@ export async function ensureFirstUnit(userId: string): Promise<GuideUnitFull> {
   // now so the path never dead-ends. persistGeneratedUnit is idempotent.
   const last = units.reduce((a, b) => (b.unitIndex > a.unitIndex ? b : a));
   if (last.status === "done" && last.choice && last.choice.selectedOptionId) {
+    // Check if the chosen option was a pause/graduate — if so, don't generate next
+    const selectedOption = last.choice.options.find((o) => o.id === last.choice!.selectedOptionId);
+    if (selectedOption?.specializationLabel == null) {
+      // Pause/graduate option — path is intentionally ended, no self-heal needed
+      return units.find((u) => u.unitIndex === 0) ?? units[0];
+    }
+
     const ctx = await buildContext(userId, last.unitIndex + 1);
     const gen = await generator.generateUnit(ctx);
     return persistGeneratedUnit(
@@ -231,19 +282,58 @@ export async function markStepDone(stepId: string): Promise<void> {
   }
 }
 
+// Generate and persist choices for a completed unit (post-completion generation).
+export async function generateAndPersistChoices(
+  userId: string,
+  unit: GuideUnitFull
+): Promise<GuideChoice> {
+  // Guard: don't generate choices if they already exist (idempotent)
+  if (unit.choice) return unit.choice;
+
+  // Guard: all steps must be completed
+  if (unit.steps.some((s) => s.completedAt == null)) {
+    throw new Error("All steps must be completed before generating choices");
+  }
+
+  const ctx = await buildContext(userId, unit.unitIndex);
+  const choiceCtx = buildChoiceContext(ctx, unit.steps);
+  const generatedChoices = await generator.generateChoices(choiceCtx);
+
+  const { data: inserted, error } = await supabase
+    .from("guide_choices")
+    .insert({
+      unit_id: unit.id,
+      user_id: userId,
+      prompt: generatedChoices.prompt,
+      options: generatedChoices.options,
+    })
+    .select()
+    .single();
+  if (error) {
+    console.error("generateAndPersistChoices", error);
+    throw error;
+  }
+
+  return mapChoice(inserted);
+}
+
 export async function submitChoice(
   userId: string,
   unit: GuideUnitFull,
   optionId: string
-): Promise<GuideUnitFull> {
+): Promise<GuideUnitFull | null> {
   if (!unit.choice) throw new Error("No choice for this unit");
   if (unit.steps.some((s) => s.completedAt == null)) throw new Error("Finish all steps first");
 
+  const selectedOption = unit.choice.options.find((o) => o.id === optionId);
+  const optionLabel = selectedOption?.label ?? optionId;
+  const isPauseOption = selectedOption?.specializationLabel == null;
+
   // Idempotent re-entry: if this unit was already submitted (e.g. a retry after
   // a transient error mid-sequence, or a stale double-tap), don't re-write the
-  // choice/unit/summary — just ensure the next unit exists and return it. This
-  // avoids duplicate progress_summaries rows.
+  // choice/unit/summary — just ensure the next unit exists and return it.
   if (unit.status === "done" || unit.choice.selectedOptionId != null) {
+    if (isPauseOption) return null; // pause/graduate — no next unit
     const ctx = await buildContext(userId, unit.unitIndex + 1);
     const gen = await generator.generateUnit(ctx);
     return persistGeneratedUnit(
@@ -259,6 +349,7 @@ export async function submitChoice(
 
   const now = new Date().toISOString();
 
+  // 1. Record the choice
   const { error: choiceError } = await supabase
     .from("guide_choices")
     .update({ selected_option_id: optionId, decided_at: now })
@@ -268,6 +359,7 @@ export async function submitChoice(
     throw choiceError;
   }
 
+  // 2. Mark the unit as done
   const { error: unitError } = await supabase
     .from("guide_units")
     .update({ status: "done", completed_at: now, updated_at: now })
@@ -277,28 +369,38 @@ export async function submitChoice(
     throw unitError;
   }
 
-  const optionLabel = unit.choice.options.find((o) => o.id === optionId)?.label ?? optionId;
+  // 3. Insert progress summary
   const { error: summaryError } = await supabase.from("progress_summaries").insert({
     user_id: userId,
-    kind: "unit_complete",
+    kind: isPauseOption ? "milestone" : "unit_complete",
     unit_id: unit.id,
     unit_index: unit.unitIndex,
-    title: `Completed: ${unit.title}`,
-    body: `Chose to focus on "${optionLabel}" next.`,
+    title: isPauseOption ? `Career journey paused: ${unit.title}` : `Completed: ${unit.title}`,
+    body: isPauseOption
+      ? `Paused the journey at "${unit.goalTitle}". Ready to review career roadmap.`
+      : `Chose to focus on "${selectedOption?.specializationLabel ?? optionLabel}" next.`,
   });
   if (summaryError) {
     console.error("submitChoice summary", summaryError);
     throw summaryError;
   }
 
-  // Prune the completed unit's step content — keep only the shell + choice (for
-  // the "you chose X" history readout and for branching). Best-effort cleanup.
+  // 4. Update career specialization on profile (if not a pause option)
+  if (!isPauseOption && selectedOption?.specializationLabel) {
+    await updateSpecialization(userId, selectedOption.specializationLabel);
+  }
+
+  // 5. Prune the completed unit's step content — keep only the shell + choice
   const { error: pruneError } = await supabase
     .from("guide_steps")
     .delete()
     .eq("unit_id", unit.id);
   if (pruneError) console.error("submitChoice prune", pruneError);
 
+  // 6. If pause/graduate, we're done — no next unit
+  if (isPauseOption) return null;
+
+  // 7. Generate and persist the next unit
   const ctx = await buildContext(userId, unit.unitIndex + 1);
   const gen = await generator.generateUnit(ctx);
   return persistGeneratedUnit(
@@ -314,9 +416,12 @@ export async function submitChoice(
 
 // Idempotent unit creation: the unique (user_id, unit_index) index is the
 // source of truth. `ignoreDuplicates` makes the insert a no-op on a repeat
-// generation (e.g. a retried call); we detect "new vs already existed" from
-// whether the upsert returned a row, only seed steps/choice when new, and
-// always re-read the unit fully so the result matches the DB either way.
+// generation; we detect "new vs already existed" from whether the upsert
+// returned a row, only seed steps when new, and always re-read the unit fully
+// so the result matches the DB either way.
+//
+// NOTE: Units are now created WITHOUT a choice. Choices are generated
+// post-completion via generateAndPersistChoices.
 async function persistGeneratedUnit(
   userId: string,
   unitIndex: number,
@@ -340,6 +445,7 @@ async function persistGeneratedUnit(
         source_choice_id: sourceChoiceId,
         source_option_id: sourceOptionId,
         context: ctx,
+        journey_summary: gen.journeySummary,
       },
       { onConflict: "user_id,unit_index", ignoreDuplicates: true }
     )
@@ -368,17 +474,7 @@ async function persistGeneratedUnit(
       console.error("persistGeneratedUnit steps", stepsError);
       throw stepsError;
     }
-
-    const { error: choiceError } = await supabase.from("guide_choices").insert({
-      unit_id: unitId,
-      user_id: userId,
-      prompt: gen.choice.prompt,
-      options: gen.choice.options,
-    });
-    if (choiceError) {
-      console.error("persistGeneratedUnit choice", choiceError);
-      throw choiceError;
-    }
+    // No choice insertion here — choices are generated post-completion
   }
 
   const { data, error } = await supabase

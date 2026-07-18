@@ -39,8 +39,10 @@ export type Profile = {
   city: string;
   majors: string[]; // school subjects/majors ('{}' = none chosen yet)
   personality_type: PersonalityType | null; // null = questionnaire not taken
-  career: string | null; // catalog career id the goal points to (null = free-text goal)
-  career_goal: string | null; // active goal's human-readable title (null = no goal)
+  career: string | null; // catalog career id the goal points to
+  career_goal: string | null; // original broad career title from catalog (null = no goal)
+  career_specialization: string | null; // latest narrowed-down career label (evolves with choices)
+  career_path: string[]; // ordered breadcrumb: broad → specific
   created_at: string;
   updated_at: string;
 };
@@ -93,20 +95,42 @@ export async function upsertProfile(
   }
 }
 
-// ---- Career goal (Round 2) -------------------------------------------------
+// ---- Career goal -----------------------------------------------------------
 // One active goal per user, stored on the profile row. `careerId` links to a
-// catalog career when the goal was chosen from the catalog; null for a
-// free-text goal.
+// catalog career (required — no free-text goals).
 export async function setCareerGoal(
   userId: string,
   title: string,
   careerId: string | null = null
 ): Promise<void> {
-  await upsertProfile(userId, { career_goal: title, career: careerId });
+  await upsertProfile(userId, {
+    career_goal: title,
+    career: careerId,
+    career_specialization: title, // initialize specialization to the broad goal
+    career_path: [title],         // start the breadcrumb trail
+  });
 }
 
 export async function clearCareerGoal(userId: string): Promise<void> {
-  await upsertProfile(userId, { career_goal: null, career: null });
+  await upsertProfile(userId, {
+    career_goal: null,
+    career: null,
+    career_specialization: null,
+    career_path: [],
+  });
+}
+
+// Update the specialization after a guide choice narrows the career path.
+export async function updateSpecialization(
+  userId: string,
+  label: string
+): Promise<void> {
+  const profile = await getProfile(userId);
+  const currentPath = profile?.career_path ?? [];
+  await upsertProfile(userId, {
+    career_specialization: label,
+    career_path: [...currentPath, label],
+  });
 }
 
 // ---- Questionnaire ---------------------------------------------------------
