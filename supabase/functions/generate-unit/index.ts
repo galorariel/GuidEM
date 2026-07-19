@@ -57,7 +57,7 @@ async function callGeminiGrounded(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      system_instruction: {
+      systemInstruction: {
         parts: [{ text: systemInstruction }],
       },
       contents: [{ parts: [{ text: prompt }] }],
@@ -109,7 +109,7 @@ async function callGeminiJSON(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      system_instruction: {
+      systemInstruction: {
         parts: [{ text: systemInstruction }],
       },
       contents: [{ parts: [{ text: prompt }] }],

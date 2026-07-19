@@ -324,7 +324,12 @@ const edgeGenerator: UnitGenerator = {
     const { data, error } = await supabase.functions.invoke("generate-unit", {
       body: { mode: "unit", ...ctx },
     });
-    if (error) throw error;
+    if (error) {
+      // Supabase returns the response body in `data` even on errors
+      const detail = data?.error ?? error.message ?? "Unknown edge function error";
+      console.error("edgeGenerator.generateUnit failed:", detail);
+      throw new Error(`AI generation failed: ${detail}`);
+    }
     return data as GeneratedUnit;
   },
 
@@ -332,7 +337,11 @@ const edgeGenerator: UnitGenerator = {
     const { data, error } = await supabase.functions.invoke("generate-unit", {
       body: { mode: "choices", ...ctx },
     });
-    if (error) throw error;
+    if (error) {
+      const detail = data?.error ?? error.message ?? "Unknown edge function error";
+      console.error("edgeGenerator.generateChoices failed:", detail);
+      throw new Error(`AI generation failed: ${detail}`);
+    }
     return data as GeneratedChoices;
   },
 };
