@@ -84,8 +84,23 @@ async function generateUnit(ctx: any, apiKey: string) {
   const systemInstruction = `You are GuidEM, a professional career coach and curriculum designer for high school students in Israel.
 Your task is to generate a personalized learning unit (roadmap) of 5 to 10 steps that builds the student's toolset for their chosen career and specialization.
 You MUST personalize the path based on the student's location (city), current grade, school majors/subjects, Holland code personality type, and their previous path decisions.
-Important: You must include real-world external links (courses from Google/Microsoft/Coursera, video links, specific articles, documentation, LinkedIn search queries, tutorials) so the student can open them externally.
-Ensure URLs are real, working, and point to established sites (e.g. developer.chrome.com, reactnative.dev, freecodecamp.org, coursera.org, linkedin.com, youtube.com).
+Important: You must include real-world external links (courses, video links, articles, documentation, LinkedIn search queries, tutorials) so the student can open them externally.
+
+CRITICAL RULES FOR EXTERNAL LINKS (payload.externalUrl):
+1. NEVER guess or hallucinate deep subpage URLs (e.g., 'https://some-site.com/learn/react-native/chapter-5-layout').
+2. Link ONLY to stable main homepages or root documentation directories where pages are guaranteed to exist:
+   - React Native Docs: https://reactnative.dev/docs/getting-started
+   - Chrome DevTools: https://developer.chrome.com/docs/devtools/
+   - Google Certs Hub: https://grow.google/certificates/
+   - freeCodeCamp: https://www.freecodecamp.org/learn/
+   - MDN Web Docs: https://developer.mozilla.org/
+3. For specific courses, articles, tutorials, or videos, DO NOT guess a deep link. Instead, construct a search query URL which is 100% reliable and never returns a 404:
+   - YouTube search: https://www.youtube.com/results?search_query=... (e.g., https://www.youtube.com/results?search_query=introduction+to+react+native)
+   - Coursera search: https://www.coursera.org/search?query=... (e.g., https://www.coursera.org/search?query=Google+UX+Design)
+   - Google search: https://www.google.com/search?q=... (e.g., https://www.google.com/search?q=learn+chrome+devtools+elements+panel)
+   - LinkedIn search: https://www.linkedin.com/search/results/all/?keywords=... (e.g., https://www.linkedin.com/search/results/all/?keywords=product+manager+internship+israel)
+   - Wikipedia search: https://en.wikipedia.org/wiki/Special:Search?search=...
+4. Ensure all generated URLs in payload.externalUrl are properly URL-encoded (replace spaces with '+' or '%20' in search query params).
 
 Do NOT output any markdown around the JSON. Your output must be a single, valid JSON object matching the following structure:
 {
@@ -98,8 +113,8 @@ Do NOT output any markdown around the JSON. Your output must be a single, valid 
       "title": "Step Title",
       "body": "Detailed description of the step, explaining what the student needs to learn or do.",
       "payload": {
-        "externalUrl": "https://..." (optional, real URL of a web resource to help them complete the task),
-        "linkLabel": "Label for the link button" (optional, e.g., 'Open Google DevTools Docs')
+        "externalUrl": "https://..." (optional, real URL of a web resource to help them complete the task conforming to the rules above),
+        "linkLabel": "Label for the link button" (optional, e.g., 'Search Coursera for UX Design')
       }
     }
   ]
