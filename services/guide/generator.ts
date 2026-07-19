@@ -325,8 +325,13 @@ const edgeGenerator: UnitGenerator = {
       body: { mode: "unit", ...ctx },
     });
     if (error) {
-      // Supabase returns the response body in `data` even on errors
-      const detail = data?.error ?? error.message ?? "Unknown edge function error";
+      // FunctionsHttpError stores the response in error.context;
+      // try to read the JSON body for the real error message.
+      let detail = error.message;
+      try {
+        const body = await (error as any).context?.json?.();
+        if (body?.error) detail = body.error;
+      } catch {}
       console.error("edgeGenerator.generateUnit failed:", detail);
       throw new Error(`AI generation failed: ${detail}`);
     }
@@ -338,7 +343,11 @@ const edgeGenerator: UnitGenerator = {
       body: { mode: "choices", ...ctx },
     });
     if (error) {
-      const detail = data?.error ?? error.message ?? "Unknown edge function error";
+      let detail = error.message;
+      try {
+        const body = await (error as any).context?.json?.();
+        if (body?.error) detail = body.error;
+      } catch {}
       console.error("edgeGenerator.generateChoices failed:", detail);
       throw new Error(`AI generation failed: ${detail}`);
     }
