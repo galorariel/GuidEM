@@ -38,6 +38,7 @@ export type Profile = {
   grade_level: string;
   city: string;
   majors: string[]; // school subjects/majors ('{}' = none chosen yet)
+  link_code: string | null; // parent linking sharing code
   personality_type: PersonalityType | null; // null = questionnaire not taken
   career: string | null; // catalog career id the goal points to
   career_goal: string | null; // original broad career title from catalog (null = no goal)

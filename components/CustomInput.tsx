@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, TextInput, Text, StyleSheet } from 'react-native';
+import { View, TextInput, Text, StyleSheet, KeyboardTypeOptions } from 'react-native';
 type Props ={
   label?: string,
   value: string,
   onChangeText: (t:string) => void;
   placeholder?: string;
   secureTextEntry?: boolean;
+  keyboardType?: KeyboardTypeOptions;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 };
 
 export default function CustomInput({
@@ -14,6 +16,8 @@ export default function CustomInput({
   onChangeText,
   placeholder,
   secureTextEntry,
+  keyboardType,
+  autoCapitalize,
 }: Props) {
   return(
     <View style={{ width: '100%' }}>
@@ -24,6 +28,8 @@ export default function CustomInput({
         placeholder={placeholder}
         placeholderTextColor='#777'
         secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
         style={styles.input}
       />
     </View>
