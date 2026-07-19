@@ -104,6 +104,9 @@ export async function setCareerGoal(
   title: string,
   careerId: string | null = null
 ): Promise<void> {
+  // Wipe any existing guide units from database immediately to prevent transition race conditions
+  await supabase.from("guide_units").delete().eq("user_id", userId);
+
   await upsertProfile(userId, {
     career_goal: title,
     career: careerId,

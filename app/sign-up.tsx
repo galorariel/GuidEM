@@ -9,6 +9,8 @@ import {
   View,
   Image,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import CustomButton from "../components/CustomButton";
 import CustomInput from "../components/CustomInput";
@@ -16,7 +18,6 @@ import GradeSelector from "../components/GradeSelector";
 import MajorsInput from "../components/MajorsInput";
 import { useAuth } from "../hooks/AuthContext";
 import { authErrorMessage } from "../services/authErrors";
-import { upsertProfile } from "../services/supabase";
 import { colors, fonts } from "../constants/theme";
 
 type UserRole = "student" | "parent";
@@ -40,7 +41,19 @@ export default function SignUp() {
     setLoading(true);
     try {
       const name = username.trim() || (role === "parent" ? "Parent" : "Student");
-      const { user: created, session } = await signUp(email, password, name);
+      
+      // Pass all metadata directly to the signUp auth options
+      const metadata = role === "student" ? {
+        role: "student",
+        school: school.trim(),
+        city: city.trim(),
+        grade_level: grade,
+        majors,
+      } : {
+        role: "parent",
+      };
+
+      const { session } = await signUp(email, password, name, metadata);
       
       if (!session) {
         Alert.alert(
@@ -51,24 +64,6 @@ export default function SignUp() {
         return;
       }
 
-      if (created) {
-        // Upsert role and matching details
-        if (role === "student") {
-          await upsertProfile(created.id, {
-            full_name: name,
-            role: "student",
-            school: school.trim(),
-            city: city.trim(),
-            grade_level: grade,
-            majors,
-          });
-        } else {
-          await upsertProfile(created.id, {
-            full_name: name,
-            role: "parent",
-          });
-        }
-      }
       router.replace("/(tabs)");
     } catch (err: any) {
       console.warn("Sign up error:", err?.message ?? err);
@@ -81,114 +76,128 @@ export default function SignUp() {
   const isStudent = role === "student";
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <View style={styles.logoSmall}>
-        <Image
-          source={require("../assets/images/logo.png")}
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
-      </View>
-
-      <Text style={styles.h1}>Sign Up</Text>
-
-      {/* Role Selection Segmented Control */}
-      <Text style={styles.selectorLabel}>I am a...</Text>
-      <View style={styles.segment}>
-        <Pressable
-          onPress={() => setRole("student")}
-          style={[styles.chip, isStudent && styles.chipActive]}
-        >
-          <Text style={[styles.chipText, isStudent && styles.chipTextActive]}>Student</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setRole("parent")}
-          style={[styles.chip, !isStudent && styles.chipActive]}
-        >
-          <Text style={[styles.chipText, !isStudent && styles.chipTextActive]}>Parent</Text>
-        </Pressable>
-      </View>
-
-      <CustomInput
-        label="Email *"
-        value={email}
-        onChangeText={setEmail}
-        placeholder="name@example.com"
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      
-      <CustomInput
-        label="Name *"
-        value={username}
-        onChangeText={setUsername}
-        placeholder={isStudent ? "Student name" : "Parent name"}
-      />
-      
-      <CustomInput
-        label="Password *"
-        value={password}
-        onChangeText={setPassword}
-        placeholder="********"
-        secureTextEntry
-        autoCapitalize="none"
-      />
-
-      {/* Conditionally render Student-only fields */}
-      {isStudent && (
-        <View style={styles.studentFields}>
-          <CustomInput
-            label="School"
-            value={school}
-            onChangeText={setSchool}
-            placeholder="School name"
-          />
-          <CustomInput
-            label="City"
-            value={city}
-            onChangeText={setCity}
-            placeholder="Tel Aviv"
-          />
-          <GradeSelector
-            value={grade}
-            onChange={setGrade}
-            label="Grade level"
-          />
-          <MajorsInput
-            label="Majors / subjects"
-            value={majors}
-            onChange={setMajors}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.flexContainer}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+    >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.logoSmall}>
+          <Image
+            source={require("../assets/images/logo.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
           />
         </View>
-      )}
 
-      <CustomButton
-        title={loading ? "Signing up…" : "Sign Up"}
-        onPress={handleSubmit}
-        disabled={loading || !email.trim() || !password.trim() || !username.trim()}
-        style={styles.signUpBtn}
-      />
-      
-      {loading && <ActivityIndicator style={{ marginTop: 10 }} color={colors.accent} />}
+        <Text style={styles.h1}>Sign Up</Text>
 
-      <View style={styles.footerRow}>
-        <Text style={styles.footerText}>Already have an account? </Text>
-        <Pressable onPress={() => router.push("/sign-in")}>
-          <Text style={styles.signInLink}>Sign in</Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+        {/* Role Selection Segmented Control */}
+        <Text style={styles.selectorLabel}>I am a...</Text>
+        <View style={styles.segment}>
+          <Pressable
+            onPress={() => setRole("student")}
+            style={[styles.chip, isStudent && styles.chipActive]}
+          >
+            <Text style={[styles.chipText, isStudent && styles.chipTextActive]}>Student</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setRole("parent")}
+            style={[styles.chip, !isStudent && styles.chipActive]}
+          >
+            <Text style={[styles.chipText, !isStudent && styles.chipTextActive]}>Parent</Text>
+          </Pressable>
+        </View>
+
+        <CustomInput
+          label="Email *"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="name@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        
+        <CustomInput
+          label="Name *"
+          value={username}
+          onChangeText={setUsername}
+          placeholder={isStudent ? "Student name" : "Parent name"}
+        />
+        
+        <CustomInput
+          label="Password *"
+          value={password}
+          onChangeText={setPassword}
+          placeholder="********"
+          secureTextEntry
+          autoCapitalize="none"
+        />
+
+        {/* Conditionally render Student-only fields */}
+        {isStudent && (
+          <View style={styles.studentFields}>
+            <CustomInput
+              label="School"
+              value={school}
+              onChangeText={setSchool}
+              placeholder="School name"
+            />
+            <CustomInput
+              label="City"
+              value={city}
+              onChangeText={setCity}
+              placeholder="Tel Aviv"
+            />
+            <GradeSelector
+              value={grade}
+              onChange={setGrade}
+              label="Grade level"
+            />
+            <MajorsInput
+              label="Majors / subjects"
+              value={majors}
+              onChange={setMajors}
+            />
+          </View>
+        )}
+
+        <CustomButton
+          title={loading ? "Signing up…" : "Sign Up"}
+          onPress={handleSubmit}
+          disabled={loading || !email.trim() || !password.trim() || !username.trim()}
+          style={styles.signUpBtn}
+        />
+        
+        {loading && <ActivityIndicator style={{ marginTop: 10 }} color={colors.accent} />}
+
+        <View style={styles.footerRow}>
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <Pressable onPress={() => router.push("/sign-in")}>
+            <Text style={styles.signInLink}>Sign in</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flexContainer: {
     flex: 1,
     backgroundColor: "#e2f5ff",
   },
+  container: {
+    flex: 1,
+  },
   scrollContent: {
     padding: 24,
-    paddingTop: 50,
+    paddingTop: 60,
     paddingBottom: 40,
     justifyContent: "center",
   },

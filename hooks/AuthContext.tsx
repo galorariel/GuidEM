@@ -10,7 +10,8 @@ interface AuthContextType {
   signUp: (
     email: string,
     password: string,
-    fullName: string
+    fullName: string,
+    metadata?: Record<string, any>
   ) => Promise<{ user: User | null; session: Session | null }>;
   signOut: () => Promise<void>;
 }
@@ -43,11 +44,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return data.user;
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    metadata: Record<string, any> = {}
+  ) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: { data: { full_name: fullName, ...metadata } },
     });
     if (error) throw error;
     return data;

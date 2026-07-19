@@ -66,7 +66,7 @@ DROP POLICY IF EXISTS "parent_links_delete" ON public.parent_links;
 CREATE POLICY "parent_links_delete" ON public.parent_links
   FOR DELETE USING (auth.uid() = parent_id OR auth.uid() = child_id);
 
--- 5. Helper function to check parent-child link status (security definer to avoid recursion)
+-- 5. Helper functions to check parent-child link status (security definer to avoid recursion)
 CREATE OR REPLACE FUNCTION public.is_parent_of(p_child_id uuid)
 RETURNS boolean security definer STABLE SET search_path = public AS $$
   SELECT EXISTS (
@@ -75,10 +75,22 @@ RETURNS boolean security definer STABLE SET search_path = public AS $$
   );
 $$ LANGUAGE sql;
 
+CREATE OR REPLACE FUNCTION public.is_child_of(p_parent_id uuid)
+RETURNS boolean security definer STABLE SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.parent_links
+    WHERE child_id = auth.uid() AND parent_id = p_parent_id
+  );
+$$ LANGUAGE sql;
+
 -- 6. RLS policy additions for cross-user profile and summary access
 DROP POLICY IF EXISTS "profiles_select_linked_child" ON public.profiles;
 CREATE POLICY "profiles_select_linked_child" ON public.profiles
   FOR SELECT USING (public.is_parent_of(id));
+
+DROP POLICY IF EXISTS "profiles_select_linked_parent" ON public.profiles;
+CREATE POLICY "profiles_select_linked_parent" ON public.profiles
+  FOR SELECT USING (public.is_child_of(id));
 
 DROP POLICY IF EXISTS "progress_summaries_select_parent" ON public.progress_summaries;
 CREATE POLICY "progress_summaries_select_parent" ON public.progress_summaries
@@ -132,12 +144,56 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 8. Backfill existing blank profile roles to 'student'
+-- 8. Atomic handle_new_user trigger updates to resolve sign up race conditions
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger security definer SET search_path = public AS $$
+DECLARE
+  v_majors json;
+  v_majors_arr text[] := '{}';
+BEGIN
+  v_majors := new.raw_user_meta_data -> 'majors';
+  IF v_majors IS NOT NULL THEN
+    SELECT array_agg(value::text) INTO v_majors_arr
+    from json_array_elements_text(v_majors);
+  END IF;
+
+  INSERT INTO public.profiles (
+    id,
+    full_name,
+    role,
+    school,
+    grade_level,
+    city,
+    majors
+  )
+  VALUES (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'full_name', ''),
+    coalesce(new.raw_user_meta_data ->> 'role', 'student'),
+    coalesce(new.raw_user_meta_data ->> 'school', ''),
+    coalesce(new.raw_user_meta_data ->> 'grade_level', ''),
+    coalesce(new.raw_user_meta_data ->> 'city', ''),
+    coalesce(v_majors_arr, '{}'::text[])
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET
+    full_name = excluded.full_name,
+    role = excluded.role,
+    school = excluded.school,
+    grade_level = excluded.grade_level,
+    city = excluded.city,
+    majors = excluded.majors;
+
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 9. Backfill existing blank profile roles to 'student'
 UPDATE public.profiles
 SET role = 'student'
 WHERE role IS NULL OR trim(role) = '';
 
--- 9. Normalize existing roles to lowercase for database consistency
+-- 10. Normalize existing roles to lowercase for database consistency
 UPDATE public.profiles
 SET role = 'student'
 WHERE lower(role) = 'student';
@@ -146,7 +202,7 @@ UPDATE public.profiles
 SET role = 'parent'
 WHERE lower(role) = 'parent';
 
--- 10. Backfill link codes for existing student profiles
+-- 11. Backfill link codes for existing student profiles
 UPDATE public.profiles
 SET link_code = public.generate_link_code()
 WHERE lower(role) = 'student' AND (link_code IS NULL OR trim(link_code) = '');
