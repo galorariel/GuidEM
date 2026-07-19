@@ -2,6 +2,7 @@ import { supabase, type PersonalityType } from "./supabase";
 
 export type Career = {
   id: string;
+  parentId: string | null;
   title: string;
   description: string;
   requiredEducation: string[];
@@ -34,20 +35,28 @@ export type CareerFilters = { subjects?: string[]; demandLevel?: string; tags?: 
 export type ActivityFilters = { category?: string; maxBudget?: number | null; location?: string };
 
 const CAREER_COLS =
-  "id,title,description,required_education,required_skills,recommended_subjects,salary_min,salary_max,salary_currency,salary_period,work_environment,demand_level,tags,holland_codes,image_url";
+  "id,parent_id,title,description,required_education,required_skills,recommended_subjects,salary_min,salary_max,salary_currency,salary_period,work_environment,demand_level,tags,holland_codes,image_url";
 const ACTIVITY_COLS =
   "id,title,category,location,price_amount,price_currency,description,tags,image_url";
 
 function mapCareer(r: any): Career {
   return {
-    id: r.id, title: r.title, description: r.description,
+    id: r.id,
+    parentId: r.parent_id ?? null,
+    title: r.title,
+    description: r.description,
     requiredEducation: r.required_education ?? [],
     requiredSkills: r.required_skills ?? [],
     recommendedSubjects: r.recommended_subjects ?? [],
-    salaryMin: r.salary_min, salaryMax: r.salary_max,
-    salaryCurrency: r.salary_currency, salaryPeriod: r.salary_period,
-    workEnvironment: r.work_environment, demandLevel: r.demand_level,
-    tags: r.tags ?? [], hollandCodes: r.holland_codes ?? [], imageUrl: r.image_url ?? null,
+    salaryMin: r.salary_min,
+    salaryMax: r.salary_max,
+    salaryCurrency: r.salary_currency,
+    salaryPeriod: r.salary_period,
+    workEnvironment: r.work_environment,
+    demandLevel: r.demand_level,
+    tags: r.tags ?? [],
+    hollandCodes: r.holland_codes ?? [],
+    imageUrl: r.image_url ?? null,
   };
 }
 function mapActivity(r: any): Activity {
@@ -60,7 +69,12 @@ function mapActivity(r: any): Activity {
 
 export async function searchCareers(query: string, filters: CareerFilters = {}): Promise<Career[]> {
   let q = supabase.from("careers").select(CAREER_COLS);
-  if (query.trim()) q = q.textSearch("search_vector", query.trim(), { type: "websearch" });
+  if (query.trim()) {
+    q = q.textSearch("search_vector", query.trim(), { type: "websearch" });
+  } else {
+    // Show only top-level careers when not searching by text query
+    q = q.is("parent_id", null);
+  }
   if (filters.demandLevel) q = q.eq("demand_level", filters.demandLevel);
   if (filters.subjects?.length) q = q.contains("recommended_subjects", filters.subjects);
   if (filters.tags?.length) q = q.contains("tags", filters.tags);
@@ -139,4 +153,36 @@ export async function recommendCareers(
   });
   scored.sort((a, b) => b.score - a.score || a.c.title.localeCompare(b.c.title));
   return scored.slice(0, limit).map((s) => s.c);
+}
+
+export async function getSubCareers(parentId: string): Promise<Career[]> {
+  const { data, error } = await supabase
+    .from("careers")
+    .select(CAREER_COLS)
+    .eq("parent_id", parentId)
+    .order("title");
+  if (error) {
+    console.error("getSubCareers", error);
+    return [];
+  }
+  return (data ?? []).map(mapCareer);
+}
+
+export async function getAncestorCareers(careerId: string): Promise<Career[]> {
+  const ancestors: Career[] = [];
+  let currentId: string | null = careerId;
+  const visited = new Set<string>();
+
+  while (currentId && !visited.has(currentId)) {
+    visited.add(currentId);
+    const career = await getCareer(currentId);
+    if (!career) break;
+    
+    if (currentId !== careerId) {
+      ancestors.unshift(career); // older ancestors first
+    }
+    currentId = career.parentId;
+  }
+
+  return ancestors;
 }
