@@ -314,44 +314,69 @@ export const mockGenerator: UnitGenerator = {
   },
 };
 
-// ---- Edge generator (placeholder) --------------------------------------
-// Not exercised this round: the "generate-unit" Edge Function doesn't exist
-// yet. This only needs to compile against the same `UnitGenerator` contract
-// so swapping generators later is a one-line change.
+// ---- Edge generator ---------------------------------------------------------
+// Calls the Supabase Edge Function with client-side retry for rate-limit errors.
+// The edge function has its own internal retries, but when two users hit the
+// free-tier Gemini API simultaneously, all server-side retries may exhaust.
+// Client-side retry adds a longer wait (5-8s) that lets the other request
+// finish before trying again.
+
+const CLIENT_MAX_RETRIES = 3;
+
+function isRetryableError(detail: string): boolean {
+  return detail.includes("429") || detail.includes("503") || detail.includes("rate");
+}
+
+async function invokeWithRetry<T>(
+  mode: string,
+  body: Record<string, any>
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < CLIENT_MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      // Wait 5-8 seconds between client retries (enough for the other request to finish)
+      const delay = 5000 + Math.floor(Math.random() * 3000);
+      console.warn(
+        `Client retry ${attempt}/${CLIENT_MAX_RETRIES} in ${delay}ms for mode=${mode}`
+      );
+      await new Promise((r) => setTimeout(r, delay));
+    }
+
+    const { data, error } = await supabase.functions.invoke("generate-unit", {
+      body: { mode, ...body },
+    });
+
+    if (error) {
+      let detail = error.message;
+      try {
+        const errBody = await (error as any).context?.json?.();
+        if (errBody?.error) detail = errBody.error;
+      } catch {}
+
+      if (isRetryableError(detail) && attempt < CLIENT_MAX_RETRIES - 1) {
+        console.warn(`Edge function returned retryable error: ${detail}`);
+        lastError = new Error(`AI generation failed: ${detail}`);
+        continue;
+      }
+
+      console.error(`edgeGenerator.${mode} failed:`, detail);
+      throw new Error(`AI generation failed: ${detail}`);
+    }
+
+    return data as T;
+  }
+
+  throw lastError ?? new Error("AI generation failed after all retries.");
+}
 
 const edgeGenerator: UnitGenerator = {
   async generateUnit(ctx: GenerateContext): Promise<GeneratedUnit> {
-    const { data, error } = await supabase.functions.invoke("generate-unit", {
-      body: { mode: "unit", ...ctx },
-    });
-    if (error) {
-      // FunctionsHttpError stores the response in error.context;
-      // try to read the JSON body for the real error message.
-      let detail = error.message;
-      try {
-        const body = await (error as any).context?.json?.();
-        if (body?.error) detail = body.error;
-      } catch {}
-      console.error("edgeGenerator.generateUnit failed:", detail);
-      throw new Error(`AI generation failed: ${detail}`);
-    }
-    return data as GeneratedUnit;
+    return invokeWithRetry<GeneratedUnit>("unit", ctx);
   },
 
   async generateChoices(ctx: ChoiceGenerateContext): Promise<GeneratedChoices> {
-    const { data, error } = await supabase.functions.invoke("generate-unit", {
-      body: { mode: "choices", ...ctx },
-    });
-    if (error) {
-      let detail = error.message;
-      try {
-        const body = await (error as any).context?.json?.();
-        if (body?.error) detail = body.error;
-      } catch {}
-      console.error("edgeGenerator.generateChoices failed:", detail);
-      throw new Error(`AI generation failed: ${detail}`);
-    }
-    return data as GeneratedChoices;
+    return invokeWithRetry<GeneratedChoices>("choices", ctx);
   },
 };
 

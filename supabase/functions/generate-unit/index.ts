@@ -75,32 +75,81 @@ function parseFirstJSON(text: string): any {
 }
 
 async function callGemini(systemInstruction: string, prompt: string, apiKey: string) {
-  const response = await fetch(GEMINI_ENDPOINT(apiKey), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: systemInstruction }],
-      },
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
-    }),
+  const MAX_RETRIES = 5;
+  const requestBody = JSON.stringify({
+    systemInstruction: {
+      parts: [{ text: systemInstruction }],
+    },
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseMimeType: "application/json",
+      maxOutputTokens: 8192,
+    },
   });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Gemini API error: ${response.status} - ${errText}`);
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    // Back off before retries with jitter so concurrent requests don't collide
+    if (attempt > 0) {
+      const baseDelay = Math.pow(2, attempt) * 1000;        // 2s, 4s, 8s, 16s
+      const jitter = Math.floor(Math.random() * 1500);      // 0-1.5s random
+      const delay = baseDelay + jitter;
+      console.warn(
+        `Gemini retry ${attempt}/${MAX_RETRIES} in ${delay}ms — previous error: ${lastError?.message}`
+      );
+      await new Promise((r) => setTimeout(r, delay));
+    }
+
+    try {
+      const response = await fetch(GEMINI_ENDPOINT(apiKey), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestBody,
+      });
+
+      // Retryable HTTP errors: rate-limited or overloaded
+      if (response.status === 429 || response.status === 503) {
+        lastError = new Error(`Gemini returned ${response.status}`);
+        continue;
+      }
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Gemini API error: ${response.status} - ${errText}`);
+      }
+
+      const resJson = await response.json();
+      const candidate = resJson.candidates?.[0];
+      const jsonText = candidate?.content?.parts?.[0]?.text;
+
+      if (!jsonText) {
+        lastError = new Error("Gemini returned an empty response.");
+        continue;
+      }
+
+      // Check if the response was truncated by the model
+      const finishReason = candidate?.finishReason;
+      if (finishReason && finishReason !== "STOP") {
+        console.warn(`Gemini finishReason: ${finishReason} — response may be truncated, retrying`);
+        lastError = new Error(`Gemini response truncated (finishReason: ${finishReason})`);
+        continue;
+      }
+
+      return parseFirstJSON(jsonText);
+    } catch (err: any) {
+      // If parseFirstJSON throws (incomplete JSON), retry
+      if (err.message?.includes("Incomplete JSON") || err.message?.includes("No JSON object")) {
+        lastError = err;
+        console.warn(`Gemini returned incomplete JSON on attempt ${attempt + 1}, retrying...`);
+        continue;
+      }
+      // Non-retryable errors bubble up immediately
+      throw err;
+    }
   }
 
-  const resJson = await response.json();
-  const jsonText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!jsonText) {
-    throw new Error("Gemini returned an empty response.");
-  }
-
-  return parseFirstJSON(jsonText);
+  throw lastError ?? new Error("Gemini API failed after all retries.");
 }
 
 // ─── Unit generation ───────────────────────────────────────────────────────

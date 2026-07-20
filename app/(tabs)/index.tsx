@@ -13,6 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "../../components/CustomButton";
 import CustomInput from "../../components/CustomInput";
+import GeneratingProgressBar from "../../components/GeneratingProgressBar";
 import GuidePath from "../../components/guide/GuidePath";
 import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
@@ -50,6 +51,7 @@ export default function Guide() {
   const [careerPath, setCareerPath] = useState<string[]>([]);
   const [units, setUnits] = useState<GuideUnitFull[]>([]);
   const [guideLoading, setGuideLoading] = useState(false);
+  const [guideError, setGuideError] = useState(false);
   const [stepBusyId, setStepBusyId] = useState<string | null>(null);
   const [choiceBusyUnitId, setChoiceBusyUnitId] = useState<string | null>(null);
   const [choiceGenerating, setChoiceGenerating] = useState(false);
@@ -67,7 +69,14 @@ export default function Guide() {
   // ---- Student loader --------------------------------------------------------
   const loadGuide = useCallback(async (userId: string) => {
     setGuideLoading(true);
+    setGuideError(false);
     try {
+      // Check existing units first so we know if this is a fresh generation
+      const existing = await getGuideUnits(userId);
+      if (existing.length === 0) {
+        setUnits([]);
+      }
+      
       await ensureFirstUnit(userId);
       const loaded = await getGuideUnits(userId);
       setUnits(loaded);
@@ -89,7 +98,8 @@ export default function Guide() {
         }
       }
     } catch (err: any) {
-      Alert.alert("Guide error", authErrorMessage(err, "Please try again."));
+      console.warn("Guide load error:", err?.message ?? err);
+      setGuideError(true);
     } finally {
       setGuideLoading(false);
     }
@@ -117,12 +127,16 @@ export default function Guide() {
 
     if (userRole === "parent") {
       await loadParentData();
+      setLoading(false);
     } else {
       const goal = profile?.career_goal ?? null;
       setGoalTitle(goal);
       setGoalCareerId(profile?.career ?? null);
       setSpecialization(profile?.career_specialization ?? null);
       setCareerPath(profile?.career_path ?? []);
+      // Unblock top-level page loading so Student Dashboard renders immediately
+      setLoading(false);
+
       if (goal) {
         await loadGuide(user.id);
       } else {
@@ -130,7 +144,6 @@ export default function Guide() {
         setJourneyPaused(false);
       }
     }
-    setLoading(false);
   }, [user, loadGuide, loadParentData]);
 
   useFocusEffect(
@@ -480,7 +493,20 @@ export default function Guide() {
 
               {/* Guide path rendering */}
               {guideLoading && units.length === 0 ? (
-                <ActivityIndicator style={{ marginTop: 20 }} color={colors.accent} />
+                <GeneratingProgressBar label="Generating your learning path" />
+              ) : guideError && units.length === 0 ? (
+                <View style={styles.card}>
+                  <Text style={styles.title}>Generation temporarily unavailable</Text>
+                  <Text style={styles.body}>
+                    Our AI is a bit busy right now. Tap below to try again — it usually works on the
+                    second attempt.
+                  </Text>
+                  <CustomButton
+                    title="Retry"
+                    onPress={() => user && loadGuide(user.id)}
+                    style={{ marginTop: 12 }}
+                  />
+                </View>
               ) : (
                 <View style={styles.pathWrapper}>
                   <GuidePath
