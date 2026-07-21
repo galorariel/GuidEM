@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -12,6 +12,7 @@ import { colors, fonts } from "../../constants/theme";
 import type { StepKind } from "../../services/guide/generator";
 
 import ToyNodeButton from "./ToyNodeButton";
+import ConfettiPop from "./ConfettiPop";
 
 interface PathNodeProps {
   x: number;
@@ -36,6 +37,31 @@ export default function PathNode({
 }: PathNodeProps) {
   const pulseScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0.5)).current;
+  const morphAnim = useRef(new Animated.Value(1)).current;
+  const [showConfetti, setShowConfetti] = useState(false);
+  const prevState = useRef(state);
+
+  useEffect(() => {
+    // If transitioning from current/locked to completed, trigger morph bounce and confetti!
+    if (prevState.current !== "completed" && state === "completed") {
+      setShowConfetti(true);
+      Animated.sequence([
+        Animated.spring(morphAnim, {
+          toValue: 1.25,
+          friction: 4,
+          tension: 180,
+          useNativeDriver: true,
+        }),
+        Animated.spring(morphAnim, {
+          toValue: 1,
+          friction: 6,
+          tension: 140,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    prevState.current = state;
+  }, [state]);
 
   useEffect(() => {
     if (state === "current") {
@@ -104,6 +130,12 @@ export default function PathNode({
         },
       ]}
     >
+      {/* Confetti Particle Burst on Completion */}
+      <ConfettiPop
+        active={showConfetti}
+        onAnimationEnd={() => setShowConfetti(false)}
+      />
+
       {/* Pulse effect behind current node */}
       {isCurrent && (
         <Animated.View
@@ -118,18 +150,20 @@ export default function PathNode({
         />
       )}
 
-      {/* Main interactive 3D toy button */}
-      <ToyNodeButton
-        size={NODE_SIZE}
-        topColor={top}
-        sideColor={side}
-        iconName={getIconName()}
-        iconSize={isCurrent ? 28 : 24}
-        iconColor={iconColor}
-        disabled={isLocked}
-        onPress={onPress}
-        isCurrent={isCurrent}
-      />
+      {/* Main interactive 3D toy button with spring morph scale animation */}
+      <Animated.View style={{ transform: [{ scale: morphAnim }] }}>
+        <ToyNodeButton
+          size={NODE_SIZE}
+          topColor={top}
+          sideColor={side}
+          iconName={getIconName()}
+          iconSize={isCurrent ? 28 : 24}
+          iconColor={iconColor}
+          disabled={isLocked}
+          onPress={onPress}
+          isCurrent={isCurrent}
+        />
+      </Animated.View>
 
       {/* Floating step label beside the node */}
       <View

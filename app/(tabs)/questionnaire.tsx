@@ -383,7 +383,7 @@ export default function QuestionnaireTab() {
 const styles = StyleSheet.create({
   h1: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading, marginBottom: 6 },
   sub: { fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 22, color: colors.heading, marginBottom: 12 },
-  progressBarContainer: { height: 8, backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4, marginBottom: 14, overflow: "hidden" },
+  progressBarContainer: { height: 8, backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4, marginBottom: 24, overflow: "hidden" },
   progressBarFill: { height: "100%", backgroundColor: colors.accent, borderRadius: 4 },
   card: { backgroundColor: colors.card, borderRadius: 16, padding: 16, paddingVertical: 16, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
   questionContainer: { marginBottom: 0 },
