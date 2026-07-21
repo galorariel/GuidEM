@@ -141,32 +141,43 @@ export default function Soft3DBlock({
     const nextState = !expanded;
     setExpanded(nextState);
 
+    const animConfig = {
+      duration: 300,
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      update: { type: LayoutAnimation.Types.easeInEaseOut },
+      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    };
+
     if (nextState) {
       setIsRendered(true);
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      LayoutAnimation.configureNext(animConfig);
       Animated.parallel([
         Animated.timing(expandAnim, {
           toValue: 1,
-          duration: 250,
+          duration: 320,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: false,
         }),
         Animated.timing(chevronAnim, {
           toValue: 1,
-          duration: 220,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]).start();
     } else {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      LayoutAnimation.configureNext(animConfig);
       Animated.parallel([
         Animated.timing(expandAnim, {
           toValue: 0,
-          duration: 220,
+          duration: 300,
+          easing: Easing.inOut(Easing.quad),
           useNativeDriver: false,
         }),
         Animated.timing(chevronAnim, {
           toValue: 0,
-          duration: 220,
+          duration: 260,
+          easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
       ]).start(() => {
@@ -180,9 +191,10 @@ export default function Soft3DBlock({
   const themeConfig = THEME_STYLES[theme] || THEME_STYLES.teal;
   const DEPTH = 6; // 3D side wall height
 
+  // Top face starts elevated by -DEPTH (-6px) and presses down to -1px
   const translateY = pressAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, DEPTH - 1],
+    outputRange: [-DEPTH, -1],
   });
 
   const scale = pressAnim.interpolate({
@@ -206,17 +218,17 @@ export default function Soft3DBlock({
         },
       ]}
     >
-      <View style={styles.blockContainer}>
+      <View style={[styles.blockContainer, { paddingTop: DEPTH }]}>
         {/* Soft diffuse ambient shadow behind the 3D block */}
         <View style={styles.shadowBase} />
 
-        {/* 3D Side Wall Base (anchored top: 0 to bottom: 0 so no gray gap shows when pressing) */}
+        {/* 3D Side Wall Base (anchored top: DEPTH to bottom: 0 so no color shows at top when pressing) */}
         <View
           style={[
             styles.sideWall,
             {
               backgroundColor: themeConfig.side,
-              top: 0,
+              top: DEPTH,
             },
           ]}
         />
@@ -234,7 +246,6 @@ export default function Soft3DBlock({
               {
                 backgroundColor: themeConfig.top,
                 borderColor: themeConfig.side + "35",
-                marginBottom: DEPTH,
                 transform: [{ translateY }, { scale }],
               },
             ]}
