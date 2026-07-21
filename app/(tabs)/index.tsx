@@ -659,7 +659,7 @@ export default function Guide() {
                     size={112}
                     topColor="#8b5cf6"
                     sideColor="#6d28d9"
-                    iconName="compass-outline"
+                    iconName="search-outline"
                     iconSize={48}
                     chars={BROWSE_CHARS}
                     radius={70}

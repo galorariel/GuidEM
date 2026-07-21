@@ -335,7 +335,7 @@ export default function QuestionnaireTab() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: 55, paddingBottom: 35 }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: 44, paddingBottom: 20 }}>
       <View style={{ paddingHorizontal: 22 }}>
         <Text style={styles.h1}>Career Questionnaire</Text>
       </View>
@@ -343,7 +343,7 @@ export default function QuestionnaireTab() {
       {mode === "loading" ? (
         <ActivityIndicator style={{ marginTop: 30 }} color={colors.accent} />
       ) : mode === "results" ? (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 40 }}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 30 }}>
           <View style={styles.resultsContainer}>
             <Text style={[styles.sub, { textAlign: "center", marginBottom: 20 }]}>You&apos;ve completed the personality test.</Text>
             <View style={styles.resultsHeaderCentered}>
@@ -395,7 +395,7 @@ export default function QuestionnaireTab() {
               <ScrollView 
                 key={pageIndex} 
                 style={{ width }} 
-                contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 28 }}
+                contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingHorizontal: 22, paddingBottom: 12 }}
                 showsVerticalScrollIndicator={false}
               >
                 <View style={styles.card}>
@@ -474,18 +474,18 @@ export default function QuestionnaireTab() {
 }
 
 const styles = StyleSheet.create({
-  h1: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading, marginBottom: 6 },
-  sub: { fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 22, color: colors.heading, marginBottom: 12 },
-  progressBarContainer: { height: 8, backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4, marginBottom: 24, overflow: "hidden" },
+  h1: { fontSize: 26, fontFamily: fonts.heading, color: colors.heading, marginBottom: 4 },
+  sub: { fontFamily: fonts.heading, fontSize: 14.5, lineHeight: 20, color: colors.heading, marginBottom: 8 },
+  progressBarContainer: { height: 8, backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4, marginBottom: 16, overflow: "hidden" },
   progressBarFill: { height: "100%", backgroundColor: colors.accent, borderRadius: 4 },
-  card: { backgroundColor: colors.card, borderRadius: 16, padding: 16, paddingVertical: 16, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+  card: { backgroundColor: colors.card, borderRadius: 16, padding: 12, paddingVertical: 12, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
   questionContainer: { marginBottom: 0 },
   navRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12 },
   pagePill: { backgroundColor: "rgba(0,0,0,0.06)", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  pagePillText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.heading },
+  pagePillText: { fontFamily: fonts.heading, fontSize: 14, color: colors.heading },
   resultsContainer: { marginTop: 12 },
   resultsTitle: { fontSize: 18, fontFamily: fonts.heading, color: colors.heading, marginBottom: 12 },
-  resultsSubtitle: { fontFamily: fonts.bodyBold, color: colors.accent, marginBottom: 14, marginTop: 10 },
+  resultsSubtitle: { fontFamily: fonts.heading, color: colors.accent, marginBottom: 14, marginTop: 10 },
   retakeBtn: { backgroundColor: colors.muted, marginTop: 24 },
   resultsHeaderCentered: {
     alignItems: "center",
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     marginVertical: 28,
   },
   yourTypeSubtitle: {
-    fontFamily: fonts.bodyBold,
+    fontFamily: fonts.heading,
     fontSize: 13,
     color: colors.muted,
     letterSpacing: 2,

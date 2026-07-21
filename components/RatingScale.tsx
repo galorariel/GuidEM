@@ -35,34 +35,36 @@ const RatingScale: React.FC<RatingScaleProps> = ({ label, selectedValue, onValue
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 6,
-    paddingVertical: 8,
+    marginBottom: 4,
+    paddingVertical: 5,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   lastContainer: {
     borderBottomWidth: 0,
     marginBottom: 0,
-    paddingBottom: 4,
+    paddingBottom: 2,
   },
   label: {
-    fontSize: 15,
+    fontSize: 14.5,
     color: colors.heading,
-    marginBottom: 7,
-    fontFamily: 'Inter_400Regular',
+    marginBottom: 6,
+    fontFamily: fonts.heading,
+    lineHeight: 18,
   },
   ratingContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
   ratingButton: {
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
     borderColor: colors.muted,
-    minWidth: 38,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
   },
   selectedRatingButton: {
     backgroundColor: colors.accent,
@@ -71,18 +73,19 @@ const styles = StyleSheet.create({
   ratingText: {
     color: colors.heading,
     fontSize: 15,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: fonts.heading,
   },
   selectedRatingText: {
     color: colors.card,
   },
   ratingButtonWrapper: {
     alignItems: 'center',
+    minHeight: 56,
   },
   subLabel: {
-    marginTop: 3,
+    marginTop: 2,
     fontSize: 9.5,
-    fontFamily: fonts.bodyBold,
+    fontFamily: fonts.heading,
     color: colors.accent,
   },
 });

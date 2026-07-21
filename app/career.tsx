@@ -123,43 +123,41 @@ export default function CareerDetail() {
           </View>
         )}
 
-        {/* Hero Title Block */}
-        <Soft3DBlock
-          title={career.title}
-          iconName="briefcase-outline"
-          theme="teal"
-          index={0}
-          badgeText={career.demandLevel.replace(/_/g, " ").toUpperCase()}
-        >
-          <View style={styles.heroActionsRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.heroSalaryText}>{salary}</Text>
+        {/* Dedicated Centered Hero Title Header */}
+        <View style={styles.heroHeaderContainer}>
+          <Text style={styles.heroTitleText}>{career.title}</Text>
+          <View style={styles.heroBadgeRow}>
+            <View style={[styles.demandBadge, { backgroundColor: "#0b5360" }]}>
+              <Text style={styles.demandBadgeText}>
+                {career.demandLevel.replace(/_/g, " ").toUpperCase()}
+              </Text>
             </View>
-
-            {user ? (
-              <View style={styles.heroButtons}>
-                {/* 3D Set Goal Button */}
-                <ToyNodeButton
-                  size={46}
-                  topColor={isMainGoal ? "#27805a" : "#107c8f"}
-                  sideColor={isMainGoal ? "#1b593e" : "#0b5360"}
-                  iconName={isMainGoal ? "compass" : "compass-outline"}
-                  iconSize={22}
-                  onPress={() => chooseGoalCareer(career)}
-                />
-                {/* 3D Save Button */}
-                <ToyNodeButton
-                  size={46}
-                  topColor={isMainSaved ? "#ec4899" : "#cbd5e1"}
-                  sideColor={isMainSaved ? "#be185d" : "#94a3b8"}
-                  iconName={isMainSaved ? "heart" : "heart-outline"}
-                  iconSize={22}
-                  onPress={() => toggleSaveCareer(career)}
-                />
-              </View>
-            ) : null}
           </View>
-        </Soft3DBlock>
+
+          {user && (
+            <View style={styles.heroActionsCenter}>
+              {/* 3D Set Goal Button */}
+              <ToyNodeButton
+                size={54}
+                topColor={isMainGoal ? "#27805a" : "#107c8f"}
+                sideColor={isMainGoal ? "#1b593e" : "#0b5360"}
+                iconName={isMainGoal ? "compass" : "compass-outline"}
+                iconSize={26}
+                onPress={() => chooseGoalCareer(career)}
+              />
+              <View style={{ width: 16 }} />
+              {/* 3D Save Button */}
+              <ToyNodeButton
+                size={54}
+                topColor={isMainSaved ? "#ec4899" : "#cbd5e1"}
+                sideColor={isMainSaved ? "#be185d" : "#94a3b8"}
+                iconName={isMainSaved ? "heart" : "heart-outline"}
+                iconSize={26}
+                onPress={() => toggleSaveCareer(career)}
+              />
+            </View>
+          )}
+        </View>
 
         {/* Block 1: Career Description */}
         <Soft3DBlock
@@ -460,5 +458,38 @@ const styles = StyleSheet.create({
   value: {
     fontFamily: fonts.body,
     color: colors.heading,
+  },
+  heroHeaderContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 22,
+    paddingHorizontal: 8,
+  },
+  heroTitleText: {
+    fontFamily: fonts.heading,
+    fontSize: 28,
+    lineHeight: 34,
+    color: colors.heading,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  heroBadgeRow: {
+    marginBottom: 12,
+  },
+  demandBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  demandBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: "#fff",
+  },
+  heroActionsCenter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
   },
 });
