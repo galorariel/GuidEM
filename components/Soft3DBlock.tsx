@@ -176,21 +176,35 @@ export default function Soft3DBlock({
         },
       ]}
     >
-      {/* Outer 3D Base (Colorful side wall + soft shadow) */}
-      <View style={[styles.outer3DBase, { backgroundColor: themeConfig.side, paddingBottom: DEPTH }]}>
+      <View style={styles.blockContainer}>
+        {/* Soft diffuse ambient shadow behind the 3D block */}
+        <View style={styles.shadowBase} />
+
+        {/* 3D Side Wall Base (anchored from top: DEPTH to bottom: 0) */}
+        <View
+          style={[
+            styles.sideWall,
+            {
+              backgroundColor: themeConfig.side,
+              top: DEPTH,
+            },
+          ]}
+        />
+
+        {/* Interactive Top Face Container */}
         <Pressable
           onPress={handleToggleExpand}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           style={styles.pressable}
         >
-          {/* Inner White Top Face */}
           <Animated.View
             style={[
               styles.topFace,
               {
                 backgroundColor: themeConfig.top,
-                borderColor: themeConfig.side + "30",
+                borderColor: themeConfig.side + "35",
+                marginBottom: DEPTH,
                 transform: [{ translateY }, { scale }],
               },
             ]}
@@ -239,20 +253,33 @@ const styles = StyleSheet.create({
   entryWrapper: {
     marginVertical: 8,
   },
-  outer3DBase: {
+  blockContainer: {
+    position: "relative",
     width: "100%",
+  },
+  shadowBase: {
+    ...StyleSheet.absoluteFillObject,
     borderRadius: 22,
+    backgroundColor: "#000",
+    opacity: 0.08,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.18,
     shadowRadius: 10,
     elevation: 4,
+  },
+  sideWall: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 22,
   },
   pressable: {
     width: "100%",
   },
   topFace: {
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1.5,
     padding: 18,
     overflow: "hidden",
