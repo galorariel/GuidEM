@@ -10,6 +10,8 @@ import { authErrorMessage } from "../../services/authErrors";
 import { recommendCareers, type Career } from "../../services/catalog";
 import { addSaved, getProfile, getSavedIds, removeSaved, setCareerGoal, upsertProfile, type PersonalityType } from "../../services/supabase";
 
+import ToyNodeButton from "../../components/guide/ToyNodeButton";
+
 const HOLLAND_CODES = ["Realistic", "Investigative", "Artistic", "Social", "Enterprising", "Conventional"];
 
 const questions = [
@@ -222,6 +224,14 @@ export default function QuestionnaireTab() {
     return true;
   };
 
+  const handleBack = () => {
+    if (currentCardIndex > 0) {
+      const prevIndex = currentCardIndex - 1;
+      setCurrentCardIndex(prevIndex);
+      scrollViewRef.current?.scrollTo({ x: prevIndex * width, animated: true });
+    }
+  };
+
   const handleContinue = () => {
     if (currentCardIndex < totalPages - 1) {
       const nextIndex = currentCardIndex + 1;
@@ -313,18 +323,54 @@ export default function QuestionnaireTab() {
             ))}
           </ScrollView>
 
-          <View style={{ paddingHorizontal: 22, paddingTop: 10 }}>
-            <View style={styles.submitRow}>
-              <CustomButton
-                style={{ paddingVertical: 16, minWidth: 200 }}
-                title={
-                  saving ? "Saving..." : 
-                  currentCardIndex === totalPages - 1 ? "Get My Personality Types" : "Continue"
+          <View style={{ paddingHorizontal: 22, paddingTop: 6 }}>
+            <View style={styles.navRow}>
+              {currentCardIndex > 0 ? (
+                <ToyNodeButton
+                  size={54}
+                  topColor="#cbd5e1"
+                  sideColor="#94a3b8"
+                  iconName="arrow-back"
+                  iconSize={26}
+                  iconColor="#475569"
+                  onPress={handleBack}
+                  disabled={saving}
+                />
+              ) : (
+                <View style={{ width: 54 }} />
+              )}
+
+              {/* Page indicator pill */}
+              <View style={styles.pagePill}>
+                <Text style={styles.pagePillText}>
+                  {currentCardIndex + 1} / {totalPages}
+                </Text>
+              </View>
+
+              {/* 3D Toy Forward / Submit Arrow Button */}
+              <ToyNodeButton
+                size={58}
+                topColor={
+                  isCurrentPageComplete()
+                    ? currentCardIndex === totalPages - 1
+                      ? "#27805a"
+                      : "#107c8f"
+                    : "#cbd5e1"
                 }
-                onPress={handleContinue}
+                sideColor={
+                  isCurrentPageComplete()
+                    ? currentCardIndex === totalPages - 1
+                      ? "#1b593e"
+                      : "#0b5360"
+                    : "#94a3b8"
+                }
+                iconName={currentCardIndex === totalPages - 1 ? "checkmark" : "arrow-forward"}
+                iconSize={28}
+                iconColor={isCurrentPageComplete() ? "#ffffff" : "#94a3b8"}
                 disabled={saving || !isCurrentPageComplete()}
+                isLoading={saving}
+                onPress={handleContinue}
               />
-              {saving ? <ActivityIndicator style={styles.spinner} color={colors.accent} /> : null}
             </View>
           </View>
         </View>
@@ -335,13 +381,14 @@ export default function QuestionnaireTab() {
 
 const styles = StyleSheet.create({
   h1: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading, marginBottom: 6 },
-  sub: { fontFamily: fonts.body, color: colors.accent, marginBottom: 12 },
-  progressBarContainer: { height: 8, backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4, marginBottom: 16, overflow: "hidden" },
+  sub: { fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 22, color: colors.heading, marginBottom: 12 },
+  progressBarContainer: { height: 8, backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4, marginBottom: 14, overflow: "hidden" },
   progressBarFill: { height: "100%", backgroundColor: colors.accent, borderRadius: 4 },
   card: { backgroundColor: colors.card, borderRadius: 16, padding: 18, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
   questionContainer: { marginBottom: 0 },
-  submitRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 12 },
-  spinner: { marginTop: 10 },
+  navRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12 },
+  pagePill: { backgroundColor: "rgba(0,0,0,0.06)", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  pagePillText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.heading },
   resultsContainer: { marginTop: 24 },
   resultsTitle: { fontSize: 18, fontFamily: fonts.heading, color: colors.heading, marginBottom: 12 },
   resultsSubtitle: { fontFamily: fonts.bodyBold, color: colors.accent, marginBottom: 8 },

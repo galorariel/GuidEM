@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useRef, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,12 +9,15 @@ import {
   View,
   Pressable,
   TextInput,
+  Animated,
+  Easing,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "../../components/CustomButton";
 import CustomInput from "../../components/CustomInput";
 import GeneratingProgressBar from "../../components/GeneratingProgressBar";
 import GuidePath from "../../components/guide/GuidePath";
+import ToyNodeButton from "../../components/guide/ToyNodeButton";
 import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
 import { authErrorMessage } from "../../services/authErrors";
@@ -35,6 +38,105 @@ import {
   type LinkedChild,
   type ProgressSummary,
 } from "../../services/parents";
+
+const QUEST_CHARS = "QUESTIONNAIRE • QUESTIONNAIRE • ".split("");
+const BROWSE_CHARS = "BROWSE • BROWSE • BROWSE • ".split("");
+
+function Spinning3DButton({
+  size,
+  topColor,
+  sideColor,
+  iconName,
+  iconSize,
+  chars,
+  radius,
+  onPress,
+  labelColor = "#107c8f",
+}: {
+  size: number;
+  topColor: string;
+  sideColor: string;
+  iconName: keyof typeof Ionicons.glyphMap;
+  iconSize: number;
+  chars: string[];
+  radius: number;
+  onPress: () => void;
+  labelColor?: string;
+}) {
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    rotateAnim.setValue(0);
+    const anim = Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 10000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [rotateAnim]);
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
+  const outerDim = (radius + 14) * 2;
+
+  return (
+    <View style={{ width: outerDim, height: outerDim, alignItems: "center", justifyContent: "center" }}>
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: outerDim,
+          height: outerDim,
+          borderRadius: outerDim / 2,
+          justifyContent: "center",
+          alignItems: "center",
+          transform: [{ rotate: spin }],
+        }}
+      >
+        {chars.map((char, index) => {
+          const angle = (index / chars.length) * 360;
+          return (
+            <View
+              key={index}
+              style={{
+                position: "absolute",
+                alignItems: "center",
+                justifyContent: "center",
+                transform: [{ rotate: `${angle}deg` }, { translateY: -radius }],
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: fonts.bodyBold,
+                  fontSize: 8.5,
+                  color: labelColor,
+                  letterSpacing: 1,
+                }}
+              >
+                {char}
+              </Text>
+            </View>
+          );
+        })}
+      </Animated.View>
+
+      <ToyNodeButton
+        size={size}
+        topColor={topColor}
+        sideColor={sideColor}
+        iconName={iconName}
+        iconSize={iconSize}
+        onPress={onPress}
+      />
+    </View>
+  );
+}
 
 export default function Guide() {
   const { user } = useAuth();
@@ -358,7 +460,7 @@ export default function Guide() {
                 >
                   <View style={styles.childAvatar}>
                     <Text style={styles.avatarText}>
-                      {child.childName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                      {child.childName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                     </Text>
                   </View>
                   <View style={{ flex: 1 }}>
@@ -524,23 +626,41 @@ export default function Guide() {
               )}
             </>
           ) : (
-            /* No goal set — show CTAs to pick a career */
-            <View style={styles.card}>
-              <Text style={styles.title}>Choose a career to start your guided path</Text>
-              <Text style={styles.body}>
-                Take the personality questionnaire to discover careers that match you, or browse the
-                career catalog to pick one directly.
-              </Text>
-              <CustomButton
-                title="Take the Questionnaire"
-                onPress={() => router.push("/(tabs)/questionnaire" as any)}
-                style={styles.ctaButton}
-              />
-              <CustomButton
-                title="Browse Careers"
-                onPress={() => router.push("/(tabs)/search" as any)}
-                style={styles.ctaButtonSecondary}
-              />
+            /* No goal set — Main Event Card */
+            <View style={styles.mainEventCard}>
+              <Text style={styles.mainEventTitle}>Choose a career to start your guided path</Text>
+              
+              <View style={styles.buttonsRow}>
+                {/* Questionnaire 3D Button (Slightly larger) */}
+                <View style={styles.buttonCol}>
+                  <Spinning3DButton
+                    size={76}
+                    topColor="#107c8f"
+                    sideColor="#0b5360"
+                    iconName="clipboard-outline"
+                    iconSize={34}
+                    chars={QUEST_CHARS}
+                    radius={52}
+                    labelColor="#107c8f"
+                    onPress={() => router.push("/(tabs)/questionnaire" as any)}
+                  />
+                </View>
+
+                {/* Browse Careers 3D Button */}
+                <View style={styles.buttonCol}>
+                  <Spinning3DButton
+                    size={68}
+                    topColor="#8b5cf6"
+                    sideColor="#6d28d9"
+                    iconName="compass-outline"
+                    iconSize={30}
+                    chars={BROWSE_CHARS}
+                    radius={46}
+                    labelColor="#8b5cf6"
+                    onPress={() => router.push("/(tabs)/search" as any)}
+                  />
+                </View>
+              </View>
             </View>
           )}
         </ScrollView>
@@ -809,5 +929,36 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
+  },
+  mainEventCard: {
+    backgroundColor: colors.card,
+    borderRadius: 24,
+    padding: 24,
+    paddingVertical: 32,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  mainEventTitle: {
+    fontSize: 22,
+    fontFamily: fonts.heading,
+    color: colors.heading,
+    textAlign: "center",
+    lineHeight: 28,
+    marginBottom: 32,
+  },
+  buttonsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    width: "100%",
+    paddingHorizontal: 10,
+  },
+  buttonCol: {
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

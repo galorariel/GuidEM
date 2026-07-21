@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { colors } from '../constants/theme';
+import { colors, fonts } from '../constants/theme';
 
 interface RatingScaleProps {
   label: string;
@@ -14,15 +14,18 @@ const RatingScale: React.FC<RatingScaleProps> = ({ label, selectedValue, onValue
       <Text style={styles.label}>{label}</Text>
       <View style={styles.ratingContainer}>
         {[1, 2, 3, 4, 5].map((value) => (
-          <TouchableOpacity
-            key={value}
-            style={[styles.ratingButton, selectedValue === value && styles.selectedRatingButton]}
-            onPress={() => onValueChange(value)}
-          >
-            <Text style={[styles.ratingText, selectedValue === value && styles.selectedRatingText]}>
-              {value}
-            </Text>
-          </TouchableOpacity>
+          <View key={value} style={styles.ratingButtonWrapper}>
+            <TouchableOpacity
+              style={[styles.ratingButton, selectedValue === value && styles.selectedRatingButton]}
+              onPress={() => onValueChange(value)}
+            >
+              <Text style={[styles.ratingText, selectedValue === value && styles.selectedRatingText]}>
+                {value}
+              </Text>
+            </TouchableOpacity>
+            {value === 1 && <Text style={styles.subLabel}>Like less</Text>}
+            {value === 5 && <Text style={styles.subLabel}>Love</Text>}
+          </View>
         ))}
       </View>
     </View>
@@ -66,6 +69,15 @@ const styles = StyleSheet.create({
   },
   selectedRatingText: {
     color: colors.card,
+  },
+  ratingButtonWrapper: {
+    alignItems: 'center',
+  },
+  subLabel: {
+    marginTop: 4,
+    fontSize: 10,
+    fontFamily: fonts.bodyBold,
+    color: colors.accent,
   },
 });
 
