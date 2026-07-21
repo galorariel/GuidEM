@@ -18,7 +18,13 @@ import CustomButton from "../CustomButton";
 import type { GuideStep, GuideUnitFull } from "../../services/guide";
 import type { ChoiceOption } from "../../services/guide/generator";
 
+import ToyNodeButton from "./ToyNodeButton";
+
 const { height: WINDOW_HEIGHT } = Dimensions.get("window");
+
+const CIRCULAR_TEXT = "MARK AS DONE • MARK AS DONE • ";
+const CIRCULAR_CHARS = CIRCULAR_TEXT.split("");
+const RADIUS = 46;
 
 interface StepDetailSheetProps {
   visible: boolean;
@@ -51,6 +57,8 @@ export default function StepDetailSheet({
   isChoiceBusy = false,
 }: StepDetailSheetProps) {
   const slideAnim = useRef(new Animated.Value(400)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (visible) {
@@ -61,8 +69,42 @@ export default function StepDetailSheet({
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start();
+
+      // Infinite rotation for the orbital text ring
+      rotateAnim.setValue(0);
+      Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 10000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+
+      // Infinite pulsing animation for the COMPLETED badge
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.06,
+            duration: 900,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 900,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
     }
   }, [visible]);
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
 
   const openLink = (url: string) => {
     Linking.openURL(url).catch((err) =>
@@ -227,18 +269,50 @@ export default function StepDetailSheet({
             )}
           </ScrollView>
 
-          <View style={styles.footer}>
+          <View style={styles.doneFooterContainer}>
             {isCompleted ? (
-              <CustomButton title="Completed" onPress={onClose} style={styles.completedBtn} disabled />
+              <Animated.View style={[styles.completedBadge, { transform: [{ scale: pulseAnim }] }]}>
+                <Ionicons name="checkmark-circle" size={22} color="#27805a" style={{ marginRight: 6 }} />
+                <Text style={styles.completedBadgeText}>COMPLETED</Text>
+              </Animated.View>
             ) : (
               <>
                 {onMarkDone && (
-                  <CustomButton
-                    title={isStepBusy ? "Saving..." : "Mark as Done"}
-                    onPress={onMarkDone}
-                    disabled={isStepBusy}
-                    style={styles.actionBtn}
-                  />
+                  <View style={styles.toyButtonWrapper}>
+                    {/* Rotating Circular Wrapped Text Ring */}
+                    <Animated.View style={[styles.orbitalRing, { transform: [{ rotate: spin }] }]}>
+                      {CIRCULAR_CHARS.map((char, index) => {
+                        const angle = (index / CIRCULAR_CHARS.length) * 360;
+                        return (
+                          <View
+                            key={index}
+                            style={[
+                              styles.charWrapper,
+                              {
+                                transform: [
+                                  { rotate: `${angle}deg` },
+                                  { translateY: -RADIUS },
+                                ],
+                              },
+                            ]}
+                          >
+                            <Text style={styles.orbitalChar}>{char}</Text>
+                          </View>
+                        );
+                      })}
+                    </Animated.View>
+
+                    {/* 3D Molded Plastic Toy Checkmark Button */}
+                    <ToyNodeButton
+                      size={64}
+                      topColor="#27805a"
+                      sideColor="#1b593e"
+                      iconName="checkmark"
+                      iconSize={32}
+                      isLoading={isStepBusy}
+                      onPress={onMarkDone}
+                    />
+                  </View>
                 )}
               </>
             )}
@@ -417,5 +491,58 @@ const styles = StyleSheet.create({
   completedBtn: {
     backgroundColor: colors.button,
     opacity: 0.9,
+  },
+  doneFooterContainer: {
+    marginTop: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 110,
+  },
+  toyButtonWrapper: {
+    width: 120,
+    height: 120,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  orbitalRing: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  charWrapper: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  orbitalChar: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
+    color: "#27805a",
+  },
+  completedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#e8f5e9",
+    borderWidth: 2,
+    borderColor: "#27805a",
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    shadowColor: "#27805a",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  completedBadgeText: {
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    color: "#27805a",
+    letterSpacing: 1,
   },
 });

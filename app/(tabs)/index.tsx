@@ -200,6 +200,7 @@ export default function Guide() {
   const handleSubmitChoice = async (unit: GuideUnitFull, optionId: string) => {
     if (!user) return;
     setChoiceBusyUnitId(unit.id);
+    setGuideLoading(true);
     try {
       const nextUnit = await submitChoice(user.id, unit, optionId);
       if (nextUnit === null) {
@@ -214,6 +215,7 @@ export default function Guide() {
       setUnits(await getGuideUnits(user.id));
     } finally {
       setChoiceBusyUnitId(null);
+      setGuideLoading(false);
     }
   };
 

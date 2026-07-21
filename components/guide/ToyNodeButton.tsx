@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Pressable,
   StyleSheet,
@@ -17,6 +18,7 @@ interface ToyNodeButtonProps {
   disabled?: boolean;
   onPress?: () => void;
   isCurrent?: boolean;
+  isLoading?: boolean;
 }
 
 export default function ToyNodeButton({
@@ -29,12 +31,13 @@ export default function ToyNodeButton({
   disabled = false,
   onPress,
   isCurrent = false,
+  isLoading = false,
 }: ToyNodeButtonProps) {
   // 0 = raised (default 3D state), 1 = pressed down flat
   const pressAnim = useRef(new Animated.Value(0)).current;
 
   const handlePressIn = () => {
-    if (disabled) return;
+    if (disabled || isLoading) return;
     Animated.timing(pressAnim, {
       toValue: 1,
       duration: 100,
@@ -43,7 +46,7 @@ export default function ToyNodeButton({
   };
 
   const handlePressOut = () => {
-    if (disabled) return;
+    if (disabled || isLoading) return;
     Animated.timing(pressAnim, {
       toValue: 0,
       duration: 120,
@@ -97,10 +100,10 @@ export default function ToyNodeButton({
 
       {/* Interactive 3D Top Face */}
       <Pressable
-        onPress={disabled ? undefined : onPress}
+        onPress={disabled || isLoading ? undefined : onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        disabled={disabled}
+        disabled={disabled || isLoading}
         style={styles.pressableArea}
       >
         <Animated.View
@@ -118,7 +121,11 @@ export default function ToyNodeButton({
           {/* Subtle glossy top highlight curve */}
           <View style={[styles.glossHighlight, { borderRadius: (size - 6) / 2 }]} />
 
-          <Ionicons name={iconName} size={actualIconSize} color={iconColor} />
+          {isLoading ? (
+            <ActivityIndicator size="small" color={iconColor} />
+          ) : (
+            <Ionicons name={iconName} size={actualIconSize} color={iconColor} />
+          )}
         </Animated.View>
       </Pressable>
     </View>

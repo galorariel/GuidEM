@@ -103,6 +103,7 @@ export default function ChoiceNode({
           iconName={isLocked ? "lock-closed" : "git-network"}
           iconSize={26}
           iconColor={isLocked ? "#64748b" : "#ffffff"}
+          isLoading={isGenerating}
           disabled={isLocked || isGenerating || !!choice}
           onPress={onGenerateChoices}
         />
