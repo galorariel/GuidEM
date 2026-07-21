@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Dimensions } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Dimensions, Animated, Easing } from "react-native";
 import CareerCard from "../../components/CareerCard";
 import CustomButton from "../../components/CustomButton";
 import RatingScale from "../../components/RatingScale"; // Import the new RatingScale component
@@ -72,6 +72,98 @@ const pages = Array.from({ length: totalPages }, (_, i) =>
 );
 
 type Mode = "loading" | "quiz" | "results";
+
+const BRAND_COLORS = ["#107c8f", "#8b5cf6", "#27805a", "#ec4899", "#f59e0b"];
+
+function AnimatedChar({ char, index, colorVal }: { char: string; index: number; colorVal: Animated.Value }) {
+  const bobVal = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    bobVal.setValue(0);
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.delay(index * 70), // Staggered offset for wave effect
+        Animated.timing(bobVal, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(bobVal, {
+          toValue: 0,
+          duration: 1000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    anim.start();
+
+    return () => {
+      anim.stop();
+    };
+  }, [index]);
+
+  const translateY = bobVal.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -7],
+  });
+
+  const charColor = colorVal.interpolate({
+    inputRange: [0, 1, 2, 3, 4],
+    outputRange: [
+      BRAND_COLORS[index % BRAND_COLORS.length],
+      BRAND_COLORS[(index + 1) % BRAND_COLORS.length],
+      BRAND_COLORS[(index + 2) % BRAND_COLORS.length],
+      BRAND_COLORS[(index + 3) % BRAND_COLORS.length],
+      BRAND_COLORS[index % BRAND_COLORS.length],
+    ],
+  });
+
+  return (
+    <Animated.View style={{ transform: [{ translateY }] }}>
+      <Animated.Text
+        style={[
+          styles.waveChar,
+          {
+            color: charColor,
+          },
+        ]}
+      >
+        {char === " " ? "\u00A0" : char}
+      </Animated.Text>
+    </Animated.View>
+  );
+}
+
+function AnimatedTypeWord({ text }: { text: string }) {
+  const characters = text.split("");
+  const colorVal = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.timing(colorVal, {
+        toValue: 4,
+        duration: 8500,
+        easing: Easing.linear,
+        useNativeDriver: false,
+      })
+    );
+    anim.start();
+
+    return () => {
+      anim.stop();
+    };
+  }, [text]);
+
+  return (
+    <View style={styles.waveWordContainer}>
+      {characters.map((char, i) => (
+        <AnimatedChar key={`${i}-${char}`} char={char} index={i} colorVal={colorVal} />
+      ))}
+    </View>
+  );
+}
 
 export default function QuestionnaireTab() {
   const { user } = useAuth();
@@ -253,10 +345,11 @@ export default function QuestionnaireTab() {
       ) : mode === "results" ? (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 40 }}>
           <View style={styles.resultsContainer}>
-            <Text style={styles.sub}>You&apos;ve completed the personality test.</Text>
-            <Text style={styles.resultsTitle}>
-              Your type: {resultPrimary}{resultSecondary ? ` / ${resultSecondary}` : ""}
-            </Text>
+            <Text style={[styles.sub, { textAlign: "center", marginBottom: 20 }]}>You&apos;ve completed the personality test.</Text>
+            <View style={styles.resultsHeaderCentered}>
+              <Text style={styles.yourTypeSubtitle}>YOUR PERSONALITY TYPE:</Text>
+              <AnimatedTypeWord text={`${resultPrimary}${resultSecondary ? ` / ${resultSecondary}` : ""}`} />
+            </View>
 
             {recommendations.length > 0 ? (
               <>
@@ -390,8 +483,32 @@ const styles = StyleSheet.create({
   navRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12 },
   pagePill: { backgroundColor: "rgba(0,0,0,0.06)", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   pagePillText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.heading },
-  resultsContainer: { marginTop: 24 },
+  resultsContainer: { marginTop: 12 },
   resultsTitle: { fontSize: 18, fontFamily: fonts.heading, color: colors.heading, marginBottom: 12 },
-  resultsSubtitle: { fontFamily: fonts.bodyBold, color: colors.accent, marginBottom: 8 },
-  retakeBtn: { backgroundColor: colors.muted, marginTop: 12 },
+  resultsSubtitle: { fontFamily: fonts.bodyBold, color: colors.accent, marginBottom: 14, marginTop: 10 },
+  retakeBtn: { backgroundColor: colors.muted, marginTop: 24 },
+  resultsHeaderCentered: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 28,
+  },
+  yourTypeSubtitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.muted,
+    letterSpacing: 2,
+    marginBottom: 10,
+  },
+  waveWordContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 50,
+  },
+  waveChar: {
+    fontFamily: fonts.heading,
+    fontSize: 34,
+    lineHeight: 42,
+  },
 });

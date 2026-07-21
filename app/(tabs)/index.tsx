@@ -633,8 +633,9 @@ export default function Guide() {
               <Text style={styles.mainEventTitle}>Choose a career to start your guided path</Text>
               
               <View style={styles.buttonsColumn}>
-                {/* Questionnaire 3D Button (Top & Much Larger) */}
+                {/* Questionnaire 3D Button Section */}
                 <View style={styles.buttonCol}>
+                  <Text style={[styles.mainEventSubLabel, { marginBottom: 10 }]}>Take the questionnaire:</Text>
                   <Spinning3DButton
                     size={136}
                     topColor="#107c8f"
@@ -649,7 +650,10 @@ export default function Guide() {
                   />
                 </View>
 
-                {/* Browse Careers 3D Button (Bottom & Centered) */}
+                {/* "or browse" middle label */}
+                <Text style={[styles.mainEventSubLabel, { marginTop: 16, marginBottom: 16 }]}>or browse:</Text>
+
+                {/* Browse Careers 3D Button Section */}
                 <View style={styles.buttonCol}>
                   <Spinning3DButton
                     size={112}
@@ -664,6 +668,9 @@ export default function Guide() {
                     onPress={() => router.push("/(tabs)/search" as any)}
                   />
                 </View>
+
+                {/* Bottom label */}
+                <Text style={[styles.mainEventSubLabel, { marginTop: 12 }]}>to find what YOU like!</Text>
               </View>
             </View>
           )}
@@ -937,14 +944,14 @@ const styles = StyleSheet.create({
   mainEventCard: {
     backgroundColor: colors.card,
     borderRadius: 24,
-    padding: 24,
-    paddingVertical: 32,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 4,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 8,
   },
   mainEventTitle: {
     fontSize: 22,
@@ -952,17 +959,22 @@ const styles = StyleSheet.create({
     color: colors.heading,
     textAlign: "center",
     lineHeight: 28,
-    marginBottom: 32,
+    marginBottom: 20,
   },
   buttonsColumn: {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
-    gap: 36,
   },
   buttonCol: {
     alignItems: "center",
     justifyContent: "center",
+  },
+  mainEventSubLabel: {
+    fontFamily: fonts.heading,
+    fontSize: 17,
+    color: colors.muted,
+    textAlign: "center",
   },
 });
