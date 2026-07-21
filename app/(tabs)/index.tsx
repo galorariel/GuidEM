@@ -52,6 +52,7 @@ function Spinning3DButton({
   radius,
   onPress,
   labelColor = "#107c8f",
+  fontSize = 11,
 }: {
   size: number;
   topColor: string;
@@ -62,6 +63,7 @@ function Spinning3DButton({
   radius: number;
   onPress: () => void;
   labelColor?: string;
+  fontSize?: number;
 }) {
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
@@ -84,7 +86,7 @@ function Spinning3DButton({
     outputRange: ["0deg", "360deg"],
   });
 
-  const outerDim = (radius + 14) * 2;
+  const outerDim = (radius + 16) * 2;
 
   return (
     <View style={{ width: outerDim, height: outerDim, alignItems: "center", justifyContent: "center" }}>
@@ -114,7 +116,7 @@ function Spinning3DButton({
               <Text
                 style={{
                   fontFamily: fonts.bodyBold,
-                  fontSize: 8.5,
+                  fontSize: fontSize,
                   color: labelColor,
                   letterSpacing: 1,
                 }}
@@ -630,32 +632,34 @@ export default function Guide() {
             <View style={styles.mainEventCard}>
               <Text style={styles.mainEventTitle}>Choose a career to start your guided path</Text>
               
-              <View style={styles.buttonsRow}>
-                {/* Questionnaire 3D Button (Slightly larger) */}
+              <View style={styles.buttonsColumn}>
+                {/* Questionnaire 3D Button (Top & Much Larger) */}
                 <View style={styles.buttonCol}>
                   <Spinning3DButton
-                    size={76}
+                    size={136}
                     topColor="#107c8f"
                     sideColor="#0b5360"
                     iconName="clipboard-outline"
-                    iconSize={34}
+                    iconSize={58}
                     chars={QUEST_CHARS}
-                    radius={52}
+                    radius={84}
+                    fontSize={11.5}
                     labelColor="#107c8f"
                     onPress={() => router.push("/(tabs)/questionnaire" as any)}
                   />
                 </View>
 
-                {/* Browse Careers 3D Button */}
+                {/* Browse Careers 3D Button (Bottom & Centered) */}
                 <View style={styles.buttonCol}>
                   <Spinning3DButton
-                    size={68}
+                    size={112}
                     topColor="#8b5cf6"
                     sideColor="#6d28d9"
                     iconName="compass-outline"
-                    iconSize={30}
+                    iconSize={48}
                     chars={BROWSE_CHARS}
-                    radius={46}
+                    radius={70}
+                    fontSize={10.5}
                     labelColor="#8b5cf6"
                     onPress={() => router.push("/(tabs)/search" as any)}
                   />
@@ -950,12 +954,12 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     marginBottom: 32,
   },
-  buttonsRow: {
-    flexDirection: "row",
+  buttonsColumn: {
+    flexDirection: "column",
     alignItems: "center",
-    justifyContent: "space-around",
+    justifyContent: "center",
     width: "100%",
-    paddingHorizontal: 10,
+    gap: 36,
   },
   buttonCol: {
     alignItems: "center",

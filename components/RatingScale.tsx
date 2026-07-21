@@ -6,11 +6,12 @@ interface RatingScaleProps {
   label: string;
   selectedValue: number;
   onValueChange: (value: number) => void;
+  isLast?: boolean;
 }
 
-const RatingScale: React.FC<RatingScaleProps> = ({ label, selectedValue, onValueChange }) => {
+const RatingScale: React.FC<RatingScaleProps> = ({ label, selectedValue, onValueChange, isLast = false }) => {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isLast && styles.lastContainer]}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.ratingContainer}>
         {[1, 2, 3, 4, 5].map((value) => (
@@ -34,28 +35,33 @@ const RatingScale: React.FC<RatingScaleProps> = ({ label, selectedValue, onValue
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 12,
-    paddingVertical: 10,
+    marginBottom: 6,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  lastContainer: {
+    borderBottomWidth: 0,
+    marginBottom: 0,
+    paddingBottom: 4,
+  },
   label: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.heading,
-    marginBottom: 8,
-    fontFamily: 'Inter_400Regular', // Assuming you have Inter_400Regular in your fonts
+    marginBottom: 7,
+    fontFamily: 'Inter_400Regular',
   },
   ratingContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
   ratingButton: {
-    paddingVertical: 8,
+    paddingVertical: 7,
     paddingHorizontal: 12,
-    borderRadius: 5,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.muted,
-    minWidth: 40,
+    minWidth: 38,
     alignItems: 'center',
   },
   selectedRatingButton: {
@@ -64,7 +70,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     color: colors.heading,
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'Inter_400Regular',
   },
   selectedRatingText: {
@@ -74,8 +80,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   subLabel: {
-    marginTop: 4,
-    fontSize: 10,
+    marginTop: 3,
+    fontSize: 9.5,
     fontFamily: fonts.bodyBold,
     color: colors.accent,
   },

@@ -302,7 +302,7 @@ export default function QuestionnaireTab() {
               <ScrollView 
                 key={pageIndex} 
                 style={{ width }} 
-                contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 20 }}
+                contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 28 }}
                 showsVerticalScrollIndicator={false}
               >
                 <View style={styles.card}>
@@ -314,6 +314,7 @@ export default function QuestionnaireTab() {
                           label={question.text}
                           selectedValue={selectedAnswers[globalIndex]}
                           onValueChange={(value) => handleRatingChange(globalIndex, value)}
+                          isLast={localIndex === pageQuestions.length - 1}
                         />
                       </View>
                     );
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 22, color: colors.heading, marginBottom: 12 },
   progressBarContainer: { height: 8, backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4, marginBottom: 14, overflow: "hidden" },
   progressBarFill: { height: "100%", backgroundColor: colors.accent, borderRadius: 4 },
-  card: { backgroundColor: colors.card, borderRadius: 16, padding: 18, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+  card: { backgroundColor: colors.card, borderRadius: 16, padding: 16, paddingVertical: 16, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
   questionContainer: { marginBottom: 0 },
   navRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12 },
   pagePill: { backgroundColor: "rgba(0,0,0,0.06)", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
