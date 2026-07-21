@@ -31,7 +31,7 @@ const RatingScale: React.FC<RatingScaleProps> = ({ label, selectedValue, onValue
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 15,
+    marginBottom: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     color: colors.heading,
-    marginBottom: 10,
+    marginBottom: 8,
     fontFamily: 'Inter_400Regular', // Assuming you have Inter_400Regular in your fonts
   },
   ratingContainer: {

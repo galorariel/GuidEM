@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Dimensions } from "react-native";
 import CareerCard from "../../components/CareerCard";
 import CustomButton from "../../components/CustomButton";
 import RatingScale from "../../components/RatingScale"; // Import the new RatingScale component
@@ -63,6 +63,12 @@ const questions = [
   { text: "Fix a broken faucet", categories: [true, false, false, false, false, false] },
 ];
 
+const QUESTIONS_PER_PAGE = 4;
+const totalPages = Math.ceil(questions.length / QUESTIONS_PER_PAGE);
+const pages = Array.from({ length: totalPages }, (_, i) => 
+  questions.slice(i * QUESTIONS_PER_PAGE, (i + 1) * QUESTIONS_PER_PAGE)
+);
+
 type Mode = "loading" | "quiz" | "results";
 
 export default function QuestionnaireTab() {
@@ -76,6 +82,10 @@ export default function QuestionnaireTab() {
   const [savedCareerIds, setSavedCareerIds] = useState<string[]>([]);
   const [goalCareerId, setGoalCareerId] = useState<string | null>(null);
 
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const { width } = Dimensions.get("window");
+
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
   // Stateful tab: if the test was already taken (profiles.personality_type set),
@@ -84,7 +94,7 @@ export default function QuestionnaireTab() {
   // only changes from a submit here, so we deliberately do NOT refresh on focus
   // (that would clobber an in-progress "Retake").
   const load = useCallback(async () => {
-    if (!user) { setSavedCareerIds([]); setMode("quiz"); return; }
+    if (!user) { setSavedCareerIds([]); setMode("quiz"); setCurrentCardIndex(0); return; }
     setSavedCareerIds(await getSavedIds(user.id, "career"));
     const profile = await getProfile(user.id);
     setGoalCareerId(profile?.career ?? null);
@@ -95,6 +105,7 @@ export default function QuestionnaireTab() {
       setMode("results");
     } else {
       setMode("quiz");
+      setCurrentCardIndex(0);
     }
   }, [user]);
 
@@ -115,6 +126,7 @@ export default function QuestionnaireTab() {
     setSelectedAnswers(new Array(questions.length).fill(0));
     setRecommendations([]);
     setMode("quiz");
+    setCurrentCardIndex(0);
   };
 
   const toggleSaveCareer = async (id: string) => {
@@ -201,74 +213,134 @@ export default function QuestionnaireTab() {
     });
   };
 
+  const isCurrentPageComplete = () => {
+    const startIndex = currentCardIndex * QUESTIONS_PER_PAGE;
+    const endIndex = Math.min(startIndex + QUESTIONS_PER_PAGE, questions.length);
+    for (let i = startIndex; i < endIndex; i++) {
+      if (selectedAnswers[i] === 0) return false;
+    }
+    return true;
+  };
+
+  const handleContinue = () => {
+    if (currentCardIndex < totalPages - 1) {
+      const nextIndex = currentCardIndex + 1;
+      setCurrentCardIndex(nextIndex);
+      scrollViewRef.current?.scrollTo({ x: nextIndex * width, animated: true });
+    } else {
+      calculateResults();
+    }
+  };
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={styles.container}>
-      <Text style={styles.h1}>Career Questionnaire</Text>
+    <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: 55, paddingBottom: 35 }}>
+      <View style={{ paddingHorizontal: 22 }}>
+        <Text style={styles.h1}>Career Questionnaire</Text>
+      </View>
 
       {mode === "loading" ? (
         <ActivityIndicator style={{ marginTop: 30 }} color={colors.accent} />
       ) : mode === "results" ? (
-        <View style={styles.resultsContainer}>
-          <Text style={styles.sub}>You&apos;ve completed the personality test.</Text>
-          <Text style={styles.resultsTitle}>
-            Your type: {resultPrimary}{resultSecondary ? ` / ${resultSecondary}` : ""}
-          </Text>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 40 }}>
+          <View style={styles.resultsContainer}>
+            <Text style={styles.sub}>You&apos;ve completed the personality test.</Text>
+            <Text style={styles.resultsTitle}>
+              Your type: {resultPrimary}{resultSecondary ? ` / ${resultSecondary}` : ""}
+            </Text>
 
-          {recommendations.length > 0 ? (
-            <>
-              <Text style={styles.resultsSubtitle}>Recommended careers</Text>
-              {recommendations.map((career) => (
-                <CareerCard
-                  key={career.id}
-                  item={career}
-                  isSaved={savedCareerIds.includes(career.id)}
-                  onToggleSave={() => toggleSaveCareer(career.id)}
-                  isGoal={goalCareerId === career.id}
-                  onPress={() => router.push(`/career?id=${career.id}` as any)}
-                  onSetGoal={() => onPickGoal(career)}
-                />
-              ))}
-            </>
-          ) : (
-            <Text style={styles.sub}>No recommendations found for your type.</Text>
-          )}
+            {recommendations.length > 0 ? (
+              <>
+                <Text style={styles.resultsSubtitle}>Recommended careers</Text>
+                {recommendations.map((career) => (
+                  <CareerCard
+                    key={career.id}
+                    item={career}
+                    isSaved={savedCareerIds.includes(career.id)}
+                    onToggleSave={() => toggleSaveCareer(career.id)}
+                    isGoal={goalCareerId === career.id}
+                    onPress={() => router.push(`/career?id=${career.id}` as any)}
+                    onSetGoal={() => onPickGoal(career)}
+                  />
+                ))}
+              </>
+            ) : (
+              <Text style={styles.sub}>No recommendations found for your type.</Text>
+            )}
 
-          <CustomButton title="Retake test" onPress={retake} style={styles.retakeBtn} />
-        </View>
-      ) : (
-        <>
-          <Text style={styles.sub}>Rate how much you like each activity (1-5) to discover your personality types.</Text>
-
-          {questions.map((question, index) => (
-            <View key={index} style={styles.questionContainer}>
-              <RatingScale
-                label={question.text}
-                selectedValue={selectedAnswers[index]}
-                onValueChange={(value) => handleRatingChange(index, value)}
-              />
-            </View>
-          ))}
-
-          <View style={styles.submitRow}>
-            <CustomButton
-              title={saving ? "Saving..." : "Get My Personality Types"}
-              onPress={calculateResults}
-              disabled={saving}
-            />
-            {saving ? <ActivityIndicator style={styles.spinner} color={colors.accent} /> : null}
+            <CustomButton title="Retake test" onPress={retake} style={styles.retakeBtn} />
           </View>
-        </>
+        </ScrollView>
+      ) : (
+        <View style={{ flex: 1 }}>
+          <View style={{ paddingHorizontal: 22 }}>
+            <Text style={styles.sub}>Rate how much you like each activity (1-5) to discover your personality types.</Text>
+            
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBarFill, { width: `${((currentCardIndex + 1) / totalPages) * 100}%` }]} />
+            </View>
+          </View>
+
+          <ScrollView
+            ref={scrollViewRef}
+            horizontal
+            pagingEnabled
+            scrollEnabled={false}
+            showsHorizontalScrollIndicator={false}
+            style={{ flex: 1 }}
+          >
+            {pages.map((pageQuestions, pageIndex) => (
+              <ScrollView 
+                key={pageIndex} 
+                style={{ width }} 
+                contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 20 }}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.card}>
+                  {pageQuestions.map((question, localIndex) => {
+                    const globalIndex = pageIndex * QUESTIONS_PER_PAGE + localIndex;
+                    return (
+                      <View key={globalIndex} style={styles.questionContainer}>
+                        <RatingScale
+                          label={question.text}
+                          selectedValue={selectedAnswers[globalIndex]}
+                          onValueChange={(value) => handleRatingChange(globalIndex, value)}
+                        />
+                      </View>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            ))}
+          </ScrollView>
+
+          <View style={{ paddingHorizontal: 22, paddingTop: 10 }}>
+            <View style={styles.submitRow}>
+              <CustomButton
+                style={{ paddingVertical: 16, minWidth: 200 }}
+                title={
+                  saving ? "Saving..." : 
+                  currentCardIndex === totalPages - 1 ? "Get My Personality Types" : "Continue"
+                }
+                onPress={handleContinue}
+                disabled={saving || !isCurrentPageComplete()}
+              />
+              {saving ? <ActivityIndicator style={styles.spinner} color={colors.accent} /> : null}
+            </View>
+          </View>
+        </View>
       )}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 22, paddingTop: 60, paddingBottom: 60 },
   h1: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading, marginBottom: 6 },
-  sub: { fontFamily: fonts.body, color: colors.accent, marginBottom: 18 },
-  questionContainer: { marginBottom: 15 },
-  submitRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  sub: { fontFamily: fonts.body, color: colors.accent, marginBottom: 12 },
+  progressBarContainer: { height: 8, backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4, marginBottom: 16, overflow: "hidden" },
+  progressBarFill: { height: "100%", backgroundColor: colors.accent, borderRadius: 4 },
+  card: { backgroundColor: colors.card, borderRadius: 16, padding: 18, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+  questionContainer: { marginBottom: 0 },
+  submitRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 12 },
   spinner: { marginTop: 10 },
   resultsContainer: { marginTop: 24 },
   resultsTitle: { fontSize: 18, fontFamily: fonts.heading, color: colors.heading, marginBottom: 12 },

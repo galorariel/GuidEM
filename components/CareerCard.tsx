@@ -15,30 +15,39 @@ type Props = {
 export default function CareerCard({ item, onPress, isSaved, onToggleSave, isGoal, onSetGoal }: Props) {
   return (
     <Pressable style={styles.card} onPress={onPress}>
-      <View style={styles.row}>
-        <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.title}>{item.title}</Text>
+      <Text numberOfLines={4} style={styles.meta}>{item.description}</Text>
+      
+      {(onSetGoal || onToggleSave) && (
         <View style={styles.actions}>
           {onSetGoal ? (
-            <Pressable onPress={onSetGoal} hitSlop={10}>
-              <Ionicons name={isGoal ? "compass" : "compass-outline"} size={20} color={isGoal ? colors.button : colors.muted} />
+            <Pressable onPress={onSetGoal} hitSlop={10} style={styles.actionButton}>
+              <Ionicons name={isGoal ? "compass" : "compass-outline"} size={24} color={isGoal ? colors.button : colors.muted} />
+              <Text style={[styles.actionText, { color: isGoal ? colors.button : colors.muted }]}>
+                {isGoal ? "Current Goal" : "Set Goal"}
+              </Text>
             </Pressable>
           ) : null}
+          
           {onToggleSave ? (
-            <Pressable onPress={onToggleSave} hitSlop={10}>
-              <Text style={styles.heart}>{isSaved ? "♥" : "♡"}</Text>
+            <Pressable onPress={onToggleSave} hitSlop={10} style={styles.actionButton}>
+              <Ionicons name={isSaved ? "heart" : "heart-outline"} size={24} color={isSaved ? colors.accent : colors.muted} />
+              <Text style={[styles.actionText, { color: isSaved ? colors.accent : colors.muted }]}>
+                {isSaved ? "Saved" : "Save"}
+              </Text>
             </Pressable>
           ) : null}
         </View>
-      </View>
-      <Text numberOfLines={2} style={styles.meta}>{item.description}</Text>
+      )}
     </Pressable>
   );
 }
+
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, marginBottom: 12, backgroundColor: colors.card },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  title: { fontFamily: fonts.heading, color: colors.heading, flex: 1, paddingRight: 10 },
-  actions: { flexDirection: "row", alignItems: "center", gap: 10 },
-  heart: { fontSize: 18, color: colors.accent },
-  meta: { marginTop: 6, fontFamily: fonts.body, color: colors.accent },
+  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 16, marginBottom: 16, backgroundColor: colors.card },
+  title: { fontSize: 20, fontFamily: fonts.heading, color: colors.heading, marginBottom: 8 },
+  meta: { fontFamily: fonts.body, color: colors.accent, lineHeight: 22 },
+  actions: { flexDirection: "row", justifyContent: "space-around", marginTop: 16, borderTopWidth: 1, borderTopColor: "rgba(0,0,0,0.05)", paddingTop: 16 },
+  actionButton: { flexDirection: "row", alignItems: "center", gap: 6 },
+  actionText: { fontFamily: fonts.bodyBold, fontSize: 14 },
 });
