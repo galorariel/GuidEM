@@ -18,7 +18,7 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export type BlockTheme = "blue" | "teal" | "purple" | "green" | "amber" | "card";
+export type BlockTheme = "blue" | "teal" | "green" | "card";
 
 interface Soft3DBlockProps {
   title: string;
@@ -40,10 +40,10 @@ const THEME_STYLES: Record<
 > = {
   card: {
     top: "#ffffff",
-    side: "#cbd5e1",
-    tintBg: "#ffffff",
+    side: "#0369a1",
+    tintBg: "#f0f9ff",
     text: colors.heading,
-    headerIconBg: "#f1f5f9",
+    headerIconBg: "#e0f2fe",
   },
   teal: {
     top: "#ffffff",
@@ -52,26 +52,12 @@ const THEME_STYLES: Record<
     text: colors.heading,
     headerIconBg: "#ccfbf1",
   },
-  purple: {
-    top: "#ffffff",
-    side: "#6d28d9",
-    tintBg: "#faf5ff",
-    text: colors.heading,
-    headerIconBg: "#f3e8ff",
-  },
   green: {
     top: "#ffffff",
     side: "#1b593e",
     tintBg: "#f0fdf4",
     text: colors.heading,
     headerIconBg: "#dcfce7",
-  },
-  amber: {
-    top: "#ffffff",
-    side: "#d97706",
-    tintBg: "#fffbeb",
-    text: colors.heading,
-    headerIconBg: "#fef3c7",
   },
   blue: {
     top: "#ffffff",
@@ -86,7 +72,7 @@ export default function Soft3DBlock({
   title,
   subtitle,
   iconName,
-  theme = "card",
+  theme = "teal",
   index = 0,
   isExpandable = false,
   defaultExpanded = false,
@@ -161,12 +147,12 @@ export default function Soft3DBlock({
     onPress?.();
   };
 
-  const themeConfig = THEME_STYLES[theme];
+  const themeConfig = THEME_STYLES[theme] || THEME_STYLES.teal;
   const DEPTH = 6; // 3D side wall height
 
   const translateY = pressAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-DEPTH, -1],
+    outputRange: [0, DEPTH - 1],
   });
 
   const scale = pressAnim.interpolate({
@@ -190,26 +176,21 @@ export default function Soft3DBlock({
         },
       ]}
     >
-      <View style={[styles.outerContainer, { paddingBottom: DEPTH }]}>
-        {/* Soft diffuse drop shadow */}
-        <View style={styles.shadowBase} />
-
-        {/* 3D Side Wall */}
-        <View style={[styles.sideWall, { backgroundColor: themeConfig.side }]} />
-
-        {/* Interactive Top Face */}
+      {/* Outer 3D Base (Colorful side wall + soft shadow) */}
+      <View style={[styles.outer3DBase, { backgroundColor: themeConfig.side, paddingBottom: DEPTH }]}>
         <Pressable
           onPress={handleToggleExpand}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           style={styles.pressable}
         >
+          {/* Inner White Top Face */}
           <Animated.View
             style={[
               styles.topFace,
               {
                 backgroundColor: themeConfig.top,
-                borderColor: themeConfig.side + "35",
+                borderColor: themeConfig.side + "30",
                 transform: [{ translateY }, { scale }],
               },
             ]}
@@ -258,30 +239,20 @@ const styles = StyleSheet.create({
   entryWrapper: {
     marginVertical: 8,
   },
-  outerContainer: {
-    position: "relative",
+  outer3DBase: {
     width: "100%",
-  },
-  shadowBase: {
-    ...StyleSheet.absoluteFillObject,
     borderRadius: 22,
-    backgroundColor: "#000",
-    opacity: 0.08,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.12,
     shadowRadius: 10,
     elevation: 4,
-  },
-  sideWall: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 22,
   },
   pressable: {
     width: "100%",
   },
   topFace: {
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 1.5,
     padding: 18,
     overflow: "hidden",

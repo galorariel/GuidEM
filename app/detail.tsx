@@ -64,7 +64,7 @@ export default function Detail() {
           title={activity.title}
           subtitle={`${activity.category} • ${price}`}
           iconName="sparkles-outline"
-          theme="purple"
+          theme="teal"
           index={0}
           badgeText={price.toUpperCase()}
         >
@@ -104,7 +104,6 @@ export default function Detail() {
           theme="teal"
           index={2}
           isExpandable
-          defaultExpanded
         >
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Venue / Location:</Text>
@@ -124,7 +123,6 @@ export default function Detail() {
           theme="green"
           index={3}
           isExpandable
-          defaultExpanded
         >
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Registration Fee:</Text>

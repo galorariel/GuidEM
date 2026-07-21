@@ -180,7 +180,6 @@ export default function CareerDetail() {
           theme="green"
           index={2}
           isExpandable
-          defaultExpanded
         >
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Estimated Range:</Text>
@@ -199,7 +198,7 @@ export default function CareerDetail() {
           title="Work Environment"
           subtitle="Typical workplace setup & atmosphere"
           iconName="business-outline"
-          theme="amber"
+          theme="teal"
           index={3}
           isExpandable
         >
@@ -211,10 +210,9 @@ export default function CareerDetail() {
           title="Education & Skills"
           subtitle="Qualifications, subjects, and key competencies"
           iconName="school-outline"
-          theme="purple"
+          theme="blue"
           index={4}
           isExpandable
-          defaultExpanded
         >
           <Text style={styles.sectionHeading}>Required Education</Text>
           {career.requiredEducation.map((e) => (
@@ -251,10 +249,9 @@ export default function CareerDetail() {
             title="Available Specializations"
             subtitle={`${subCareers.length} focus areas to explore`}
             iconName="git-network-outline"
-            theme="teal"
+            theme="green"
             index={5}
             isExpandable
-            defaultExpanded
           >
             <View style={{ gap: 10 }}>
               {subCareers.map((sub) => {
@@ -307,10 +304,9 @@ export default function CareerDetail() {
             title="Recommended Activities"
             subtitle="Hands-on experiences for this career"
             iconName="sparkles-outline"
-            theme="card"
+            theme="teal"
             index={6}
             isExpandable
-            defaultExpanded
           >
             {related.map((a) => (
               <ActivityCard
