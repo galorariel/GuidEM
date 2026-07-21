@@ -167,7 +167,6 @@ export default function CareerDetail() {
           iconName="document-text-outline"
           theme="blue"
           index={1}
-          isExpandable={false}
         >
           <Text style={styles.bodyText}>{career.description}</Text>
         </Soft3DBlock>
@@ -179,7 +178,6 @@ export default function CareerDetail() {
           iconName="cash-outline"
           theme="green"
           index={2}
-          isExpandable
         >
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Estimated Range:</Text>
@@ -200,7 +198,6 @@ export default function CareerDetail() {
           iconName="business-outline"
           theme="teal"
           index={3}
-          isExpandable
         >
           <Text style={styles.bodyText}>{career.workEnvironment}</Text>
         </Soft3DBlock>
@@ -212,7 +209,6 @@ export default function CareerDetail() {
           iconName="school-outline"
           theme="blue"
           index={4}
-          isExpandable
         >
           <Text style={styles.sectionHeading}>Required Education</Text>
           {career.requiredEducation.map((e) => (
@@ -251,7 +247,6 @@ export default function CareerDetail() {
             iconName="git-network-outline"
             theme="green"
             index={5}
-            isExpandable
           >
             <View style={{ gap: 10 }}>
               {subCareers.map((sub) => {
@@ -306,7 +301,6 @@ export default function CareerDetail() {
             iconName="sparkles-outline"
             theme="teal"
             index={6}
-            isExpandable
           >
             {related.map((a) => (
               <ActivityCard

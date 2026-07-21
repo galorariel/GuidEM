@@ -91,7 +91,6 @@ export default function Detail() {
           iconName="document-text-outline"
           theme="blue"
           index={1}
-          isExpandable={false}
         >
           <Text style={styles.bodyText}>{activity.description}</Text>
         </Soft3DBlock>
@@ -103,7 +102,6 @@ export default function Detail() {
           iconName="location-outline"
           theme="teal"
           index={2}
-          isExpandable
         >
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Venue / Location:</Text>
@@ -122,7 +120,6 @@ export default function Detail() {
           iconName="pricetag-outline"
           theme="green"
           index={3}
-          isExpandable
         >
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Registration Fee:</Text>

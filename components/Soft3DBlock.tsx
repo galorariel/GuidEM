@@ -1,22 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Animated,
   Easing,
-  LayoutAnimation,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
-  UIManager,
   View,
   ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "../constants/theme";
-
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 export type BlockTheme = "blue" | "teal" | "green" | "card";
 
@@ -26,8 +19,6 @@ interface Soft3DBlockProps {
   iconName?: keyof typeof Ionicons.glyphMap;
   theme?: BlockTheme;
   index?: number; // for staggered entry animation
-  isExpandable?: boolean;
-  defaultExpanded?: boolean;
   children?: React.ReactNode;
   style?: ViewStyle;
   badgeText?: string;
@@ -74,31 +65,19 @@ export default function Soft3DBlock({
   iconName,
   theme = "teal",
   index = 0,
-  isExpandable = false,
-  defaultExpanded = false,
   children,
   style,
   badgeText,
   onPress,
 }: Soft3DBlockProps) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-  const [isRendered, setIsRendered] = useState(defaultExpanded);
-  
-  // Entry assembly animation (fade-in + rise upward)
+  // Staggered entry assembly animation
   const entryFade = useRef(new Animated.Value(0)).current;
   const entryRise = useRef(new Animated.Value(20)).current;
 
   // Tactile press animation
   const pressAnim = useRef(new Animated.Value(0)).current;
 
-  // Chevron rotation animation (0 = pointing right, 1 = pointing down)
-  const chevronAnim = useRef(new Animated.Value(defaultExpanded ? 1 : 0)).current;
-
-  // Smooth content height & opacity animation for expansion/collapse
-  const expandAnim = useRef(new Animated.Value(defaultExpanded ? 1 : 0)).current;
-
   useEffect(() => {
-    // Staggered assembly on mount
     const delay = Math.min(index * 70, 400);
     Animated.parallel([
       Animated.timing(entryFade, {
@@ -133,78 +112,22 @@ export default function Soft3DBlock({
     }).start();
   };
 
-  const handleToggleExpand = () => {
-    if (!isExpandable) {
-      onPress?.();
-      return;
-    }
-    const nextState = !expanded;
-    setExpanded(nextState);
-
-    const animConfig = {
-      duration: 300,
-      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-      update: { type: LayoutAnimation.Types.easeInEaseOut },
-      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-    };
-
-    if (nextState) {
-      setIsRendered(true);
-      LayoutAnimation.configureNext(animConfig);
-      Animated.parallel([
-        Animated.timing(expandAnim, {
-          toValue: 1,
-          duration: 320,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: false,
-        }),
-        Animated.timing(chevronAnim, {
-          toValue: 1,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      LayoutAnimation.configureNext(animConfig);
-      Animated.parallel([
-        Animated.timing(expandAnim, {
-          toValue: 0,
-          duration: 300,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: false,
-        }),
-        Animated.timing(chevronAnim, {
-          toValue: 0,
-          duration: 260,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setIsRendered(false);
-      });
-    }
-
+  const handlePress = () => {
     onPress?.();
   };
 
   const themeConfig = THEME_STYLES[theme] || THEME_STYLES.teal;
   const DEPTH = 6; // 3D side wall height
 
-  // Top face starts elevated by -DEPTH (-6px) and presses down to -1px
+  // Tactile press translates top face 3px down into colorful 3D housing with subtle scale
   const translateY = pressAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-DEPTH, -1],
+    outputRange: [0, DEPTH - 3],
   });
 
   const scale = pressAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 0.992],
-  });
-
-  const chevronRotate = chevronAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "90deg"],
+    outputRange: [1, 0.988],
   });
 
   return (
@@ -218,34 +141,35 @@ export default function Soft3DBlock({
         },
       ]}
     >
-      <View style={[styles.blockContainer, { paddingTop: DEPTH }]}>
-        {/* Soft diffuse ambient shadow behind the 3D block */}
+      <View style={[styles.blockContainer, { paddingBottom: DEPTH }]}>
+        {/* Soft diffuse ambient shadow behind the block */}
         <View style={styles.shadowBase} />
 
-        {/* 3D Side Wall Base (anchored top: DEPTH to bottom: 0 so no color shows at top when pressing) */}
+        {/* 3D Side Wall Base (anchored strictly at bottom: 0, top: 40 so NO color is present at the top bezel) */}
         <View
           style={[
             styles.sideWall,
             {
               backgroundColor: themeConfig.side,
-              top: DEPTH,
+              top: 40,
             },
           ]}
         />
 
         {/* Interactive Top Face Container */}
         <Pressable
-          onPress={handleToggleExpand}
+          onPress={handlePress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           style={styles.pressable}
+          disabled={!onPress}
         >
           <Animated.View
             style={[
               styles.topFace,
               {
                 backgroundColor: themeConfig.top,
-                borderColor: themeConfig.side + "35",
+                borderColor: themeConfig.side + "30",
                 transform: [{ translateY }, { scale }],
               },
             ]}
@@ -271,35 +195,10 @@ export default function Soft3DBlock({
                   <Text style={styles.badgeText}>{badgeText}</Text>
                 </View>
               )}
-
-              {isExpandable && (
-                <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
-                  <Ionicons name="chevron-forward" size={20} color={colors.accent} />
-                </Animated.View>
-              )}
             </View>
 
-            {/* Block Body Content (Animated expand & collapse) */}
-            {isExpandable ? (
-              isRendered && children && (
-                <Animated.View
-                  style={[
-                    styles.bodyContent,
-                    {
-                      opacity: expandAnim,
-                      maxHeight: expandAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 600],
-                      }),
-                    },
-                  ]}
-                >
-                  {children}
-                </Animated.View>
-              )
-            ) : (
-              children && <View style={styles.bodyContent}>{children}</View>
-            )}
+            {/* Block Body Content (Displayed directly now, no expand/collapse aspect) */}
+            {children && <View style={styles.bodyContent}>{children}</View>}
           </Animated.View>
         </Pressable>
       </View>
@@ -316,14 +215,18 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   shadowBase: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 20,
     borderRadius: 22,
     backgroundColor: "#000",
     opacity: 0.08,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
-    shadowRadius: 10,
+    shadowRadius: 8,
     elevation: 4,
   },
   sideWall: {
@@ -337,7 +240,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   topFace: {
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 1.5,
     padding: 18,
     overflow: "hidden",
@@ -395,6 +298,5 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "rgba(0, 0, 0, 0.06)",
-    overflow: "hidden",
   },
 });
