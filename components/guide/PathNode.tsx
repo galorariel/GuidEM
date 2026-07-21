@@ -11,6 +11,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "../../constants/theme";
 import type { StepKind } from "../../services/guide/generator";
 
+import ToyNodeButton from "./ToyNodeButton";
+
 interface PathNodeProps {
   x: number;
   y: number;
@@ -32,7 +34,6 @@ export default function PathNode({
   labelPosition,
   onPress,
 }: PathNodeProps) {
-  // Pulsing animation for the current node's background ring
   const pulseScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0.5)).current;
 
@@ -57,7 +58,6 @@ export default function PathNode({
     }
   }, [state]);
 
-  // Map step kinds to vector icons
   const getIconName = (): keyof typeof Ionicons.glyphMap => {
     if (state === "completed") return "checkmark";
     if (state === "locked") return "lock-closed";
@@ -78,22 +78,21 @@ export default function PathNode({
     }
   };
 
-  const getBackgroundColor = () => {
+  const getColors = () => {
     switch (state) {
       case "completed":
-        return colors.button; // Green
+        return { top: "#27805a", side: "#1b593e", icon: "#ffffff" };
       case "current":
-        return colors.accent; // Teal
+        return { top: "#107c8f", side: "#0b5360", icon: "#ffffff" };
       case "locked":
-        return colors.muted + "40"; // Semi-transparent grey
+        return { top: "#cbd5e1", side: "#94a3b8", icon: "#64748b" };
     }
   };
 
-  const isCompleted = state === "completed";
   const isCurrent = state === "current";
   const isLocked = state === "locked";
-
   const labelOffset = NODE_SIZE / 2 + 12;
+  const { top, side, icon: iconColor } = getColors();
 
   return (
     <View
@@ -119,23 +118,18 @@ export default function PathNode({
         />
       )}
 
-      {/* Main interactive node button */}
-      <Pressable
-        onPress={onPress}
+      {/* Main interactive 3D toy button */}
+      <ToyNodeButton
+        size={NODE_SIZE}
+        topColor={top}
+        sideColor={side}
+        iconName={getIconName()}
+        iconSize={isCurrent ? 28 : 24}
+        iconColor={iconColor}
         disabled={isLocked}
-        style={({ pressed }) => [
-          styles.node,
-          { backgroundColor: getBackgroundColor() },
-          isCurrent && styles.currentNode,
-          pressed && !isLocked && styles.pressed,
-        ]}
-      >
-        <Ionicons
-          name={getIconName()}
-          size={isCurrent ? 28 : 24}
-          color={isLocked ? colors.muted : "#fff"}
-        />
-      </Pressable>
+        onPress={onPress}
+        isCurrent={isCurrent}
+      />
 
       {/* Floating step label beside the node */}
       <View

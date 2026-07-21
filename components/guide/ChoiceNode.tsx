@@ -1,10 +1,10 @@
 import React from "react";
-import { StyleSheet, Text, View, Pressable, ActivityIndicator } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, Text, View } from "react-native";
 import Svg, { Line } from "react-native-svg";
 import { colors, fonts } from "../../constants/theme";
 import type { GuideChoice } from "../../services/guide";
 import type { ChoiceOption } from "../../services/guide/generator";
+import ToyNodeButton from "./ToyNodeButton";
 
 interface ChoiceNodeProps {
   x: number; // center X of the path
@@ -16,8 +16,8 @@ interface ChoiceNodeProps {
   onGenerateChoices: () => void;
 }
 
-const MAIN_NODE_SIZE = 64;
-const BRANCH_NODE_SIZE = 50;
+const MAIN_NODE_SIZE = 60;
+const BRANCH_NODE_SIZE = 48;
 const BRANCH_OFFSET_Y = 90; // vertical distance from main node to branch options
 
 export default function ChoiceNode({
@@ -96,30 +96,19 @@ export default function ChoiceNode({
           },
         ]}
       >
-        <Pressable
-          onPress={isLocked || isGenerating || choice ? undefined : onGenerateChoices}
+        <ToyNodeButton
+          size={MAIN_NODE_SIZE}
+          topColor={isLocked ? "#cbd5e1" : "#8b5cf6"}
+          sideColor={isLocked ? "#94a3b8" : "#6d28d9"}
+          iconName={isLocked ? "lock-closed" : "git-network"}
+          iconSize={26}
+          iconColor={isLocked ? "#64748b" : "#ffffff"}
           disabled={isLocked || isGenerating || !!choice}
-          style={({ pressed }) => [
-            styles.mainNode,
-            isLocked && styles.mainNodeLocked,
-            isGenerating && styles.mainNodeGenerating,
-            isPending && styles.mainNodePending,
-            pressed && !isLocked && !isGenerating && !choice && styles.pressed,
-          ]}
-        >
-          {isGenerating ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Ionicons
-              name={isLocked ? "lock-closed" : "git-network"}
-              size={28}
-              color="#fff"
-            />
-          )}
-        </Pressable>
+          onPress={onGenerateChoices}
+        />
       </View>
 
-      {/* Branch Options fanning out as clean circular nodes with side/bottom labels */}
+      {/* Branch Options fanning out as clean circular 3D toy nodes */}
       {isPending &&
         branches.map((b) => {
           const isPause = b.option.specializationLabel == null;
@@ -134,23 +123,17 @@ export default function ChoiceNode({
                 },
               ]}
             >
-              {/* Circular Branch Button */}
-              <Pressable
-                onPress={() => onPressOption(b.option)}
+              {/* 3D Toy Branch Button (Slightly smaller size) */}
+              <ToyNodeButton
+                size={BRANCH_NODE_SIZE}
+                topColor={isPause ? "#eab308" : "#0284c7"}
+                sideColor={isPause ? "#ca8a04" : "#0369a1"}
+                iconName={isPause ? "ribbon" : "git-branch"}
+                iconSize={20}
+                iconColor="#ffffff"
                 disabled={isBusy}
-                style={({ pressed }) => [
-                  styles.branchNode,
-                  isPause && styles.pauseNode,
-                  isBusy && styles.disabled,
-                  pressed && !isBusy && styles.pressed,
-                ]}
-              >
-                <Ionicons
-                  name={isPause ? "ribbon" : "git-branch"}
-                  size={20}
-                  color={isPause ? colors.button : colors.accent}
-                />
-              </Pressable>
+                onPress={() => onPressOption(b.option)}
+              />
 
               {/* Centered Small Label below circular branch */}
               <View style={styles.branchLabelWrapper} pointerEvents="none">

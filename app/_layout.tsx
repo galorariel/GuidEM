@@ -49,7 +49,7 @@ function RootLayoutNav() {
         name='sign-up'
         options={{ headerShown: true, title: '' }}
       />
-      <Stack.Screen name='(tabs)' options={{ title: '' }} />
+      <Stack.Screen name='(tabs)' options={{ title: '', gestureEnabled: false }} />
       <Stack.Screen
         name='detail'
         options={{ headerShown: true, title: 'Activity Details', headerTitleStyle: { fontFamily: 'Poppins_700Bold', color: colors.heading } }}

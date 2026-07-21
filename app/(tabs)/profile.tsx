@@ -2,6 +2,7 @@ import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { Alert, StyleSheet, Text, View, Share, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import CustomButton from "../../components/CustomButton";
 import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
@@ -16,6 +17,7 @@ export default function Profile() {
   const [linkCode, setLinkCode] = useState<string | null>(null);
   const [linkedParents, setLinkedParents] = useState<{ parentId: string; parentName: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const loadProfileData = useCallback(async () => {
     if (!user) return;
@@ -76,6 +78,13 @@ export default function Profile() {
         },
       ]
     );
+  };
+
+  const handleCopyCode = async () => {
+    if (!linkCode) return;
+    await Clipboard.setStringAsync(linkCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShareCode = async () => {
@@ -167,6 +176,13 @@ export default function Profile() {
             <View style={styles.codeContainer}>
               <Text style={styles.codeText}>{linkCode}</Text>
             </View>
+            <Pressable
+              onPress={handleCopyCode}
+              style={({ pressed }) => [styles.copyBtn, pressed && styles.pressed]}
+            >
+              <Ionicons name={copied ? "checkmark" : "copy-outline"} size={16} color={colors.accent} style={{ marginRight: 4 }} />
+              <Text style={styles.copyBtnText}>{copied ? "Copied!" : "Copy"}</Text>
+            </Pressable>
             <Pressable
               onPress={handleShareCode}
               style={({ pressed }) => [styles.shareBtn, pressed && styles.pressed]}
@@ -352,7 +368,7 @@ const styles = StyleSheet.create({
     height: 44,
     backgroundColor: colors.accent,
     borderRadius: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -360,6 +376,23 @@ const styles = StyleSheet.create({
   shareBtnText: {
     fontFamily: fonts.bodyBold,
     color: "#fff",
+    fontSize: 13,
+  },
+  copyBtn: {
+    height: 44,
+    backgroundColor: "rgba(16, 124, 143, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(16, 124, 143, 0.3)",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
+  },
+  copyBtnText: {
+    fontFamily: fonts.bodyBold,
+    color: colors.accent,
     fontSize: 13,
   },
   linkedListContainer: {

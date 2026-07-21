@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,12 +8,17 @@ import {
   ScrollView,
   Linking,
   ActivityIndicator,
+  Animated,
+  Easing,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "../../constants/theme";
 import CustomButton from "../CustomButton";
 import type { GuideStep, GuideUnitFull } from "../../services/guide";
 import type { ChoiceOption } from "../../services/guide/generator";
+
+const { height: WINDOW_HEIGHT } = Dimensions.get("window");
 
 interface StepDetailSheetProps {
   visible: boolean;
@@ -45,17 +50,31 @@ export default function StepDetailSheet({
   onChooseOption,
   isChoiceBusy = false,
 }: StepDetailSheetProps) {
+  const slideAnim = useRef(new Animated.Value(400)).current;
+
+  useEffect(() => {
+    if (visible) {
+      slideAnim.setValue(400);
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible]);
+
   const openLink = (url: string) => {
     Linking.openURL(url).catch((err) =>
       console.error("Failed to open URL:", err)
     );
   };
 
-  const renderContent = () => {
+  const renderInnerContent = () => {
     if (completedUnit) {
       // Milestone unit details
       return (
-        <View style={styles.sheetContent}>
+        <>
           <View style={styles.header}>
             <View style={styles.titleWrapper}>
               <View style={[styles.kindBadge, { backgroundColor: colors.button }]}>
@@ -92,7 +111,7 @@ export default function StepDetailSheet({
           </ScrollView>
 
           <CustomButton title="Close Summary" onPress={onClose} style={styles.actionBtn} />
-        </View>
+        </>
       );
     }
 
@@ -100,7 +119,7 @@ export default function StepDetailSheet({
       // Choice option details
       const isPause = choiceOption.specializationLabel == null;
       return (
-        <View style={styles.sheetContent}>
+        <>
           <View style={styles.header}>
             <View style={styles.titleWrapper}>
               <View style={[styles.kindBadge, isPause && { backgroundColor: colors.button }]}>
@@ -154,7 +173,7 @@ export default function StepDetailSheet({
               />
             )}
           </View>
-        </View>
+        </>
       );
     }
 
@@ -165,7 +184,7 @@ export default function StepDetailSheet({
       const hasLink = !!payload.externalUrl;
 
       return (
-        <View style={styles.sheetContent}>
+        <>
           <View style={styles.header}>
             <View style={styles.titleWrapper}>
               <View style={[styles.kindBadge, isCompleted && { backgroundColor: colors.button }]}>
@@ -224,7 +243,7 @@ export default function StepDetailSheet({
               </>
             )}
           </View>
-        </View>
+        </>
       );
     }
 
@@ -234,13 +253,21 @@ export default function StepDetailSheet({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="fade"
       transparent
+      statusBarTranslucent
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={onClose} />
-        {renderContent()}
+        <Animated.View
+          style={[
+            styles.sheetContent,
+            { transform: [{ translateY: slideAnim }] },
+          ]}
+        >
+          {renderInnerContent()}
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -256,10 +283,11 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   sheetContent: {
+    width: "100%",
     backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: "80%",
+    maxHeight: WINDOW_HEIGHT * 0.85,
     padding: 24,
     paddingBottom: 40,
     shadowColor: "#000",
