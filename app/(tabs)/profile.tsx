@@ -49,7 +49,7 @@ export default function Profile() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.replace("/sign-in");
+      router.replace("/welcome");
     } catch (e) {
       console.warn(e);
       Alert.alert("Error", "Could not sign out.");
@@ -148,7 +148,7 @@ export default function Profile() {
           </Pressable>
           
           <Pressable style={styles.menuItem} onPress={() => router.push("/saved")}>
-            <Ionicons name="bookmark-outline" size={20} color={colors.accent} />
+            <Ionicons name="heart-outline" size={20} color={colors.accent} />
             <Text style={styles.menuText}>Saved Careers & Activities</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} />
           </Pressable>

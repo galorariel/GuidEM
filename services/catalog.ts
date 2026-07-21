@@ -70,7 +70,8 @@ function mapActivity(r: any): Activity {
 export async function searchCareers(query: string, filters: CareerFilters = {}): Promise<Career[]> {
   let q = supabase.from("careers").select(CAREER_COLS);
   if (query.trim()) {
-    q = q.textSearch("search_vector", query.trim(), { type: "websearch" });
+    const term = `%${query.trim()}%`;
+    q = q.or(`title.ilike.${term},description.ilike.${term}`);
   } else {
     // Show only top-level careers when not searching by text query
     q = q.is("parent_id", null);
@@ -91,7 +92,10 @@ export async function getCareer(id: string): Promise<Career | null> {
 
 export async function searchActivities(query: string, filters: ActivityFilters = {}): Promise<Activity[]> {
   let q = supabase.from("activities").select(ACTIVITY_COLS);
-  if (query.trim()) q = q.textSearch("search_vector", query.trim(), { type: "websearch" });
+  if (query.trim()) {
+    const term = `%${query.trim()}%`;
+    q = q.or(`title.ilike.${term},description.ilike.${term},location.ilike.${term},category.ilike.${term}`);
+  }
   if (filters.category) q = q.eq("category", filters.category);
   if (filters.maxBudget != null) q = q.lte("price_amount", filters.maxBudget);
   if (filters.location?.trim()) q = q.ilike("location", `%${filters.location.trim()}%`);
