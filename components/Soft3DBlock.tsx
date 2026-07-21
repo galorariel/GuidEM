@@ -82,6 +82,7 @@ export default function Soft3DBlock({
   onPress,
 }: Soft3DBlockProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [isRendered, setIsRendered] = useState(defaultExpanded);
   
   // Entry assembly animation (fade-in + rise upward)
   const entryFade = useRef(new Animated.Value(0)).current;
@@ -92,6 +93,9 @@ export default function Soft3DBlock({
 
   // Chevron rotation animation (0 = pointing right, 1 = pointing down)
   const chevronAnim = useRef(new Animated.Value(defaultExpanded ? 1 : 0)).current;
+
+  // Smooth content height & opacity animation for expansion/collapse
+  const expandAnim = useRef(new Animated.Value(defaultExpanded ? 1 : 0)).current;
 
   useEffect(() => {
     // Staggered assembly on mount
@@ -135,14 +139,40 @@ export default function Soft3DBlock({
       return;
     }
     const nextState = !expanded;
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpanded(nextState);
 
-    Animated.timing(chevronAnim, {
-      toValue: nextState ? 1 : 0,
-      duration: 220,
-      useNativeDriver: true,
-    }).start();
+    if (nextState) {
+      setIsRendered(true);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      Animated.parallel([
+        Animated.timing(expandAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: false,
+        }),
+        Animated.timing(chevronAnim, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      Animated.parallel([
+        Animated.timing(expandAnim, {
+          toValue: 0,
+          duration: 220,
+          useNativeDriver: false,
+        }),
+        Animated.timing(chevronAnim, {
+          toValue: 0,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsRendered(false);
+      });
+    }
 
     onPress?.();
   };
@@ -180,13 +210,13 @@ export default function Soft3DBlock({
         {/* Soft diffuse ambient shadow behind the 3D block */}
         <View style={styles.shadowBase} />
 
-        {/* 3D Side Wall Base (anchored from top: DEPTH to bottom: 0) */}
+        {/* 3D Side Wall Base (anchored top: 0 to bottom: 0 so no gray gap shows when pressing) */}
         <View
           style={[
             styles.sideWall,
             {
               backgroundColor: themeConfig.side,
-              top: DEPTH,
+              top: 0,
             },
           ]}
         />
@@ -238,9 +268,26 @@ export default function Soft3DBlock({
               )}
             </View>
 
-            {/* Block Body Content (visible directly or when expanded) */}
-            {(!isExpandable || expanded) && children && (
-              <View style={styles.bodyContent}>{children}</View>
+            {/* Block Body Content (Animated expand & collapse) */}
+            {isExpandable ? (
+              isRendered && children && (
+                <Animated.View
+                  style={[
+                    styles.bodyContent,
+                    {
+                      opacity: expandAnim,
+                      maxHeight: expandAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 600],
+                      }),
+                    },
+                  ]}
+                >
+                  {children}
+                </Animated.View>
+              )
+            ) : (
+              children && <View style={styles.bodyContent}>{children}</View>
             )}
           </Animated.View>
         </Pressable>
@@ -337,5 +384,6 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "rgba(0, 0, 0, 0.06)",
+    overflow: "hidden",
   },
 });
