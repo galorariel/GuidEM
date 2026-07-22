@@ -1,4 +1,5 @@
 import "react-native-url-polyfill/auto";
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 
@@ -11,12 +12,28 @@ if (!url || !anonKey) {
   );
 }
 
+// Storage adapter that safely guards against SSR (Node.js pre-rendering where window is undefined)
+const ssrSafeStorage = {
+  getItem: (key: string) => {
+    if (typeof window === "undefined") return Promise.resolve(null);
+    return AsyncStorage.getItem(key);
+  },
+  setItem: (key: string, value: string) => {
+    if (typeof window === "undefined") return Promise.resolve();
+    return AsyncStorage.setItem(key, value);
+  },
+  removeItem: (key: string) => {
+    if (typeof window === "undefined") return Promise.resolve();
+    return AsyncStorage.removeItem(key);
+  },
+};
+
 export const supabase = createClient(url, anonKey, {
   auth: {
-    storage: AsyncStorage,
+    storage: ssrSafeStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false, // no browser redirect flow in RN
+    detectSessionInUrl: Platform.OS === "web",
   },
 });
 
