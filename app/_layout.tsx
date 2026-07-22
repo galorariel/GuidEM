@@ -45,11 +45,11 @@ function RootLayoutNav() {
       <Stack.Screen name='welcome' />
       <Stack.Screen
         name='sign-in'
-        options={{ headerShown: true, title: '' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name='sign-up'
-        options={{ headerShown: true, title: '' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen name='(tabs)' options={{ title: '', gestureEnabled: false }} />
       <Stack.Screen

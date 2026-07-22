@@ -14,6 +14,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import CustomButton from "../../components/CustomButton";
 import CustomInput from "../../components/CustomInput";
 import GeneratingProgressBar from "../../components/GeneratingProgressBar";
@@ -138,6 +139,83 @@ function Spinning3DButton({
         onPress={onPress}
       />
     </View>
+  );
+}
+
+function AnimatedGoalTitle({ title }: { title: string }) {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    const shimmerLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 2200,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.delay(1800),
+      ])
+    );
+
+    floatLoop.start();
+    shimmerLoop.start();
+    return () => {
+      floatLoop.stop();
+      shimmerLoop.stop();
+    };
+  }, [floatAnim, shimmerAnim]);
+
+  const translateY = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-3, 3],
+  });
+
+  const shimmerTranslateX = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-150, 320],
+  });
+
+  return (
+    <Animated.View style={[{ transform: [{ translateY }] }, { overflow: "hidden", borderRadius: 8, paddingVertical: 2, marginVertical: 2 }]}>
+      <Text style={styles.title}>{title}</Text>
+      {/* Pure White Light Beam Shimmer */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          width: 80,
+          transform: [{ translateX: shimmerTranslateX }, { skewX: "-20deg" }],
+        }}
+      >
+        <LinearGradient
+          colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.75)", "rgba(255,255,255,0)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </Animated.View>
+    </Animated.View>
   );
 }
 
@@ -562,7 +640,7 @@ export default function Guide() {
               {/* Goal + Specialization header */}
               <View style={styles.card}>
                 <Text style={styles.label}>Your goal</Text>
-                <Text style={styles.title}>{goalTitle}</Text>
+                <AnimatedGoalTitle title={goalTitle} />
                 {specialization && specialization !== goalTitle ? (
                   <>
                     <Text style={styles.specHeader}>Current focus</Text>
