@@ -75,7 +75,19 @@ type Mode = "loading" | "quiz" | "results";
 
 const BRAND_COLORS = ["#107c8f", "#8b5cf6", "#55C5B1", "#ec4899", "#f59e0b"];
 
-function AnimatedChar({ char, index, colorVal }: { char: string; index: number; colorVal: Animated.Value }) {
+function AnimatedChar({
+  char,
+  index,
+  colorVal,
+  fontSize,
+  lineHeight,
+}: {
+  char: string;
+  index: number;
+  colorVal: Animated.Value;
+  fontSize: number;
+  lineHeight: number;
+}) {
   const bobVal = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -106,7 +118,7 @@ function AnimatedChar({ char, index, colorVal }: { char: string; index: number; 
 
   const translateY = bobVal.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -7],
+    outputRange: [0, -6],
   });
 
   const charColor = colorVal.interpolate({
@@ -126,6 +138,8 @@ function AnimatedChar({ char, index, colorVal }: { char: string; index: number; 
         style={[
           styles.waveChar,
           {
+            fontSize,
+            lineHeight,
             color: charColor,
           },
         ]}
@@ -137,7 +151,6 @@ function AnimatedChar({ char, index, colorVal }: { char: string; index: number; 
 }
 
 function AnimatedTypeWord({ text }: { text: string }) {
-  const characters = text.split("");
   const colorVal = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -156,11 +169,51 @@ function AnimatedTypeWord({ text }: { text: string }) {
     };
   }, [text]);
 
+  // Dynamically scale down font size for long/dual personality types to fit on a single line
+  const getFontSize = (str: string) => {
+    const len = str.length;
+    if (len > 24) return 19;
+    if (len > 18) return 22;
+    if (len > 14) return 26;
+    if (len > 10) return 30;
+    return 34;
+  };
+
+  const fontSize = getFontSize(text);
+  const lineHeight = Math.round(fontSize * 1.25);
+
+  // Group characters by word to ensure whole words stay intact
+  const words = text.split(" ");
+  let globalCharIndex = 0;
+
   return (
     <View style={styles.waveWordContainer}>
-      {characters.map((char, i) => (
-        <AnimatedChar key={`${i}-${char}`} char={char} index={i} colorVal={colorVal} />
-      ))}
+      {words.map((word, wIdx) => {
+        const wordChars = word.split("");
+        const wordElement = (
+          <View key={`word-${wIdx}`} style={styles.wordWrapper}>
+            {wordChars.map((char) => {
+              const charIndex = globalCharIndex++;
+              return (
+                <AnimatedChar
+                  key={`char-${charIndex}`}
+                  char={char}
+                  index={charIndex}
+                  colorVal={colorVal}
+                  fontSize={fontSize}
+                  lineHeight={lineHeight}
+                />
+              );
+            })}
+          </View>
+        );
+
+        if (wIdx < words.length - 1) {
+          globalCharIndex++;
+        }
+
+        return wordElement;
+      })}
     </View>
   );
 }
@@ -505,6 +558,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     minHeight: 50,
+  },
+  wordWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 3,
   },
   waveChar: {
     fontFamily: fonts.heading,
