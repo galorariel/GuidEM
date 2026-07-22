@@ -45,10 +45,10 @@ const THEME_STYLES: Record<
   },
   green: {
     top: "#ffffff",
-    side: "#1b593e",
+    side: "#389e8d",
     tintBg: "#f0fdf4",
     text: colors.heading,
-    headerIconBg: "#dcfce7",
+    headerIconBg: "#e6f8f5",
   },
   blue: {
     top: "#ffffff",

@@ -228,7 +228,12 @@ export default function Profile() {
         </View>
       )}
 
-      <CustomButton title="Sign Out" onPress={handleSignOut} style={styles.signOutBtn} />
+      <CustomButton
+        title="Sign Out"
+        onPress={handleSignOut}
+        style={styles.signOutBtn}
+        textStyle={{ color: "#334155" }}
+      />
     </ScrollView>
   );
 }
@@ -429,7 +434,7 @@ const styles = StyleSheet.create({
   },
   signOutBtn: {
     marginTop: 10,
-    backgroundColor: colors.muted,
+    backgroundColor: "#cbd5e1",
   },
   pressed: {
     opacity: 0.9,

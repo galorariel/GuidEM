@@ -11,6 +11,7 @@ import {
   TextInput,
   Animated,
   Easing,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "../../components/CustomButton";
@@ -74,7 +75,7 @@ function Spinning3DButton({
         toValue: 1,
         duration: 10000,
         easing: Easing.linear,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== "web",
       })
     );
     anim.start();
@@ -582,6 +583,7 @@ export default function Guide() {
                   onPress={handleClear}
                   disabled={busy}
                   style={styles.clearBtn}
+                  textStyle={{ color: "#334155" }}
                 />
               </View>
 
@@ -657,14 +659,14 @@ export default function Guide() {
                 <View style={styles.buttonCol}>
                   <Spinning3DButton
                     size={112}
-                    topColor="#8b5cf6"
-                    sideColor="#6d28d9"
+                    topColor="#55C5B1"
+                    sideColor="#389e8d"
                     iconName="search-outline"
                     iconSize={48}
                     chars={BROWSE_CHARS}
                     radius={70}
                     fontSize={10.5}
-                    labelColor="#8b5cf6"
+                    labelColor="#389e8d"
                     onPress={() => router.push("/(tabs)/search" as any)}
                   />
                 </View>
@@ -731,7 +733,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   clearBtn: {
-    backgroundColor: colors.muted,
+    backgroundColor: "#cbd5e1",
     marginTop: 8,
   },
   specHeader: {

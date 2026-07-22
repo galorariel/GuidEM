@@ -73,7 +73,7 @@ const pages = Array.from({ length: totalPages }, (_, i) =>
 
 type Mode = "loading" | "quiz" | "results";
 
-const BRAND_COLORS = ["#107c8f", "#8b5cf6", "#27805a", "#ec4899", "#f59e0b"];
+const BRAND_COLORS = ["#107c8f", "#8b5cf6", "#55C5B1", "#ec4899", "#f59e0b"];
 
 function AnimatedChar({ char, index, colorVal }: { char: string; index: number; colorVal: Animated.Value }) {
   const bobVal = useRef(new Animated.Value(0)).current;
@@ -370,7 +370,7 @@ export default function QuestionnaireTab() {
               <Text style={styles.sub}>No recommendations found for your type.</Text>
             )}
 
-            <CustomButton title="Retake test" onPress={retake} style={styles.retakeBtn} />
+            <CustomButton title="Retake test" onPress={retake} style={styles.retakeBtn} textStyle={{ color: "#334155" }} />
           </View>
         </ScrollView>
       ) : (
@@ -447,14 +447,14 @@ export default function QuestionnaireTab() {
                 topColor={
                   isCurrentPageComplete()
                     ? currentCardIndex === totalPages - 1
-                      ? "#27805a"
+                      ? "#55C5B1"
                       : "#107c8f"
                     : "#cbd5e1"
                 }
                 sideColor={
                   isCurrentPageComplete()
                     ? currentCardIndex === totalPages - 1
-                      ? "#1b593e"
+                      ? "#389e8d"
                       : "#0b5360"
                     : "#94a3b8"
                 }
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
   resultsContainer: { marginTop: 12 },
   resultsTitle: { fontSize: 18, fontFamily: fonts.heading, color: colors.heading, marginBottom: 12 },
   resultsSubtitle: { fontFamily: fonts.heading, color: colors.accent, marginBottom: 14, marginTop: 10 },
-  retakeBtn: { backgroundColor: colors.muted, marginTop: 24 },
+  retakeBtn: { backgroundColor: "#cbd5e1", marginTop: 24 },
   resultsHeaderCentered: {
     alignItems: "center",
     justifyContent: "center",

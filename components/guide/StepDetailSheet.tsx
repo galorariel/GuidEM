@@ -272,7 +272,7 @@ export default function StepDetailSheet({
           <View style={styles.doneFooterContainer}>
             {isCompleted ? (
               <Animated.View style={[styles.completedBadge, { transform: [{ scale: pulseAnim }] }]}>
-                <Ionicons name="checkmark-circle" size={22} color="#27805a" style={{ marginRight: 6 }} />
+                <Ionicons name="checkmark-circle" size={22} color="#55C5B1" style={{ marginRight: 6 }} />
                 <Text style={styles.completedBadgeText}>COMPLETED</Text>
               </Animated.View>
             ) : (
@@ -305,8 +305,8 @@ export default function StepDetailSheet({
                     {/* 3D Molded Plastic Toy Checkmark Button */}
                     <ToyNodeButton
                       size={64}
-                      topColor="#27805a"
-                      sideColor="#1b593e"
+                      topColor="#55C5B1"
+                      sideColor="#389e8d"
                       iconName="checkmark"
                       iconSize={32}
                       isLoading={isStepBusy}
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   orbitalChar: {
     fontFamily: fonts.bodyBold,
     fontSize: 9,
-    color: "#27805a",
+    color: "#55C5B1",
   },
   completedBadge: {
     flexDirection: "row",
@@ -529,11 +529,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#e8f5e9",
     borderWidth: 2,
-    borderColor: "#27805a",
+    borderColor: "#55C5B1",
     borderRadius: 24,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    shadowColor: "#27805a",
+    shadowColor: "#55C5B1",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
   completedBadgeText: {
     fontFamily: fonts.heading,
     fontSize: 15,
-    color: "#27805a",
+    color: "#55C5B1",
     letterSpacing: 1,
   },
 });

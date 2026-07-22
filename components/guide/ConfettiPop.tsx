@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, View } from "react-native";
 
 const BRAND_COLORS = [
   "#107c8f", // Teal
-  "#27805a", // Green
+  "#55C5B1", // Mint Green
   "#8b5cf6", // Purple
   "#f59e0b", // Gold
   "#ec4899", // Pink

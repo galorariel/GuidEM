@@ -33,6 +33,19 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.heading,
+        sceneStyle: { backgroundColor: "transparent" },
+        tabBarStyle: {
+          backgroundColor: "#ffffff",
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          borderTopWidth: 1,
+          borderTopColor: "rgba(0,0,0,0.06)",
+          elevation: 8,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.06,
+          shadowRadius: 6,
+        },
       }}
     >
       <Tabs.Screen

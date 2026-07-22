@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors, fonts } from '../constants/theme';
+import * as Haptics from 'expo-haptics';
 
 interface RatingScaleProps {
   label: string;
@@ -18,6 +19,12 @@ const RatingScale: React.FC<RatingScaleProps> = ({ label, selectedValue, onValue
           <View key={value} style={styles.ratingButtonWrapper}>
             <TouchableOpacity
               style={[styles.ratingButton, selectedValue === value && styles.selectedRatingButton]}
+              onPressIn={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+              }}
+              onPressOut={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              }}
               onPress={() => onValueChange(value)}
             >
               <Text style={[styles.ratingText, selectedValue === value && styles.selectedRatingText]}>
