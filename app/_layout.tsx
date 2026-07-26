@@ -7,6 +7,7 @@ import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
 import { colors } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
+import AnimatedGradientBackground from '../components/AnimatedGradientBackground';
 
 function RootLayoutNav() {
   const { user, isLoading } = useAuth();
@@ -27,7 +28,8 @@ function RootLayoutNav() {
       screenOptions={{
         headerShown: false,
         headerTintColor: colors.heading,
-        headerStyle: { backgroundColor: colors.bg },
+        headerStyle: { backgroundColor: "transparent" },
+        contentStyle: { backgroundColor: "transparent" },
         headerShadowVisible: false,
         headerLeft: () => (
           <Pressable
@@ -43,11 +45,11 @@ function RootLayoutNav() {
       <Stack.Screen name='welcome' />
       <Stack.Screen
         name='sign-in'
-        options={{ headerShown: true, title: '' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name='sign-up'
-        options={{ headerShown: true, title: '' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen name='(tabs)' options={{ title: '', gestureEnabled: false }} />
       <Stack.Screen
@@ -69,7 +71,6 @@ function RootLayoutNav() {
     </Stack>
   );
 }
-
 export default function RootLayout(){
   const [fontsLoaded] = useFonts({
     Poppins_700Bold,
@@ -83,7 +84,9 @@ export default function RootLayout(){
 
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <AnimatedGradientBackground>
+        <RootLayoutNav />
+      </AnimatedGradientBackground>
     </AuthProvider>
   );
 }

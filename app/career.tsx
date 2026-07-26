@@ -139,8 +139,8 @@ export default function CareerDetail() {
               {/* 3D Set Goal Button */}
               <ToyNodeButton
                 size={54}
-                topColor={isMainGoal ? "#27805a" : "#107c8f"}
-                sideColor={isMainGoal ? "#1b593e" : "#0b5360"}
+                topColor={isMainGoal ? "#55C5B1" : "#107c8f"}
+                sideColor={isMainGoal ? "#389e8d" : "#0b5360"}
                 iconName={isMainGoal ? "compass" : "compass-outline"}
                 iconSize={26}
                 onPress={() => chooseGoalCareer(career)}
@@ -269,8 +269,8 @@ export default function CareerDetail() {
                     <View style={styles.specActions}>
                       <ToyNodeButton
                         size={38}
-                        topColor={isSubGoal ? "#27805a" : "#107c8f"}
-                        sideColor={isSubGoal ? "#1b593e" : "#0b5360"}
+                        topColor={isSubGoal ? "#55C5B1" : "#107c8f"}
+                        sideColor={isSubGoal ? "#389e8d" : "#0b5360"}
                         iconName={isSubGoal ? "compass" : "compass-outline"}
                         iconSize={18}
                         onPress={() => chooseGoalCareer(sub)}

@@ -107,7 +107,7 @@ export default function PathNode({
   const getColors = () => {
     switch (state) {
       case "completed":
-        return { top: "#27805a", side: "#1b593e", icon: "#ffffff" };
+        return { top: "#55C5B1", side: "#389e8d", icon: "#ffffff" };
       case "current":
         return { top: "#107c8f", side: "#0b5360", icon: "#ffffff" };
       case "locked":

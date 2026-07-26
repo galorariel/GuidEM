@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 interface ToyNodeButtonProps {
   size?: number;
@@ -38,20 +39,25 @@ export default function ToyNodeButton({
 
   const handlePressIn = () => {
     if (disabled || isLoading) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     Animated.timing(pressAnim, {
       toValue: 1,
-      duration: 100,
+      duration: 50,
       useNativeDriver: true,
     }).start();
   };
 
   const handlePressOut = () => {
     if (disabled || isLoading) return;
-    Animated.timing(pressAnim, {
-      toValue: 0,
-      duration: 120,
-      useNativeDriver: true,
-    }).start();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    Animated.sequence([
+      Animated.delay(40),
+      Animated.timing(pressAnim, {
+        toValue: 0,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const DEPTH = Math.max(5, Math.round(size * 0.1)); // 3D side wall height (5-6px)
