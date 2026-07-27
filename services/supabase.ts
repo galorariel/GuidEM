@@ -86,23 +86,41 @@ export type SavedRow = {
 };
 
 // ---- Profile ---------------------------------------------------------------
+const profileCache = new Map<string, Profile>();
+
 export async function getProfile(userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .maybeSingle();
-  if (error) {
-    console.error("getProfile", error);
-    return null;
+  const cached = profileCache.get(userId);
+
+  const fetchPromise = (async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) {
+      console.error("getProfile", error);
+      return null;
+    }
+    if (data) profileCache.set(userId, data);
+    return data;
+  })();
+
+  if (cached) {
+    return cached;
   }
-  return data;
+
+  return await fetchPromise;
 }
 
 export async function upsertProfile(
   userId: string,
   data: Partial<Omit<Profile, "id">>
 ): Promise<void> {
+  const existing = profileCache.get(userId);
+  if (existing) {
+    profileCache.set(userId, { ...existing, ...data, updated_at: new Date().toISOString() });
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({ ...data, updated_at: new Date().toISOString() })

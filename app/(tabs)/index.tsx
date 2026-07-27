@@ -291,8 +291,10 @@ export default function Guide() {
   const name = (user?.user_metadata?.full_name as string) || "User";
 
   // ---- Student loader --------------------------------------------------------
-  const loadGuide = useCallback(async (userId: string) => {
-    setGuideLoading(true);
+  const loadGuide = useCallback(async (userId: string, isSilent = false) => {
+    if (!isSilent) {
+      setGuideLoading(true);
+    }
     setGuideError(false);
     try {
       // Check existing units first so we know if this is a fresh generation
@@ -323,7 +325,7 @@ export default function Guide() {
       }
     } catch (err: any) {
       console.warn("Guide load error:", err?.message ?? err);
-      setGuideError(true);
+      if (!isSilent) setGuideError(true);
     } finally {
       setGuideLoading(false);
     }
@@ -344,7 +346,10 @@ export default function Guide() {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    const hasExistingContent = role !== null;
+    if (!hasExistingContent) {
+      setLoading(true);
+    }
     const profile = await getProfile(user.id);
     const userRole = (profile?.role && profile.role.trim() !== '') ? profile.role.toLowerCase() : "student";
     setRole(userRole);
@@ -358,17 +363,16 @@ export default function Guide() {
       setGoalCareerId(profile?.career ?? null);
       setSpecialization(profile?.career_specialization ?? null);
       setCareerPath(profile?.career_path ?? []);
-      // Unblock top-level page loading so Student Dashboard renders immediately
       setLoading(false);
 
       if (goal) {
-        await loadGuide(user.id);
+        await loadGuide(user.id, hasExistingContent);
       } else {
         setUnits([]);
         setJourneyPaused(false);
       }
     }
-  }, [user, loadGuide, loadParentData]);
+  }, [user, role, loadParentData, loadGuide]);
 
   useFocusEffect(
     useCallback(() => {

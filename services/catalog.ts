@@ -67,6 +67,11 @@ function mapActivity(r: any): Activity {
   };
 }
 
+const careerCache = new Map<string, Career>();
+const activitiesForCareerCache = new Map<string, Activity[]>();
+const subCareersCache = new Map<string, Career[]>();
+const ancestorCareersCache = new Map<string, Career[]>();
+
 export async function searchCareers(query: string, filters: CareerFilters = {}): Promise<Career[]> {
   let q = supabase.from("careers").select(CAREER_COLS);
   if (query.trim()) {
@@ -81,13 +86,18 @@ export async function searchCareers(query: string, filters: CareerFilters = {}):
   if (filters.tags?.length) q = q.contains("tags", filters.tags);
   const { data, error } = await q.order("title");
   if (error) { console.error("searchCareers", error); return []; }
-  return (data ?? []).map(mapCareer);
+  const mapped = (data ?? []).map(mapCareer);
+  mapped.forEach((c) => careerCache.set(c.id, c));
+  return mapped;
 }
 
 export async function getCareer(id: string): Promise<Career | null> {
+  if (careerCache.has(id)) return careerCache.get(id)!;
   const { data, error } = await supabase.from("careers").select(CAREER_COLS).eq("id", id).maybeSingle();
   if (error) { console.error("getCareer", error); return null; }
-  return data ? mapCareer(data) : null;
+  const res = data ? mapCareer(data) : null;
+  if (res) careerCache.set(id, res);
+  return res;
 }
 
 export async function searchActivities(query: string, filters: ActivityFilters = {}): Promise<Activity[]> {
@@ -111,12 +121,15 @@ export async function getActivity(id: string): Promise<Activity | null> {
 }
 
 export async function getActivitiesForCareer(careerId: string): Promise<Activity[]> {
+  if (activitiesForCareerCache.has(careerId)) return activitiesForCareerCache.get(careerId)!;
   const { data, error } = await supabase
     .from("career_activities")
     .select(`activity_id, activities (${ACTIVITY_COLS})`)
     .eq("career_id", careerId);
   if (error) { console.error("getActivitiesForCareer", error); return []; }
-  return (data ?? []).map((r: any) => mapActivity(r.activities)).filter(Boolean);
+  const res = (data ?? []).map((r: any) => mapActivity(r.activities)).filter(Boolean);
+  activitiesForCareerCache.set(careerId, res);
+  return res;
 }
 
 export async function getActivitiesByIds(ids: string[]): Promise<Activity[]> {
@@ -128,9 +141,15 @@ export async function getActivitiesByIds(ids: string[]): Promise<Activity[]> {
 
 export async function getCareersByIds(ids: string[]): Promise<Career[]> {
   if (!ids.length) return [];
-  const { data, error } = await supabase.from("careers").select(CAREER_COLS).in("id", ids);
-  if (error) { console.error("getCareersByIds", error); return []; }
-  return (data ?? []).map(mapCareer);
+  const uncachedIds = ids.filter((id) => !careerCache.has(id));
+  if (uncachedIds.length > 0) {
+    const { data, error } = await supabase.from("careers").select(CAREER_COLS).in("id", uncachedIds);
+    if (error) { console.error("getCareersByIds", error); }
+    else {
+      (data ?? []).map(mapCareer).forEach((c) => careerCache.set(c.id, c));
+    }
+  }
+  return ids.map((id) => careerCache.get(id)).filter(Boolean) as Career[];
 }
 
 // Recommend catalog careers for a RIASEC personality type. Fetches careers whose
@@ -145,6 +164,7 @@ export async function recommendCareers(
   const { data, error } = await supabase.from("careers").select(CAREER_COLS).overlaps("holland_codes", codes);
   if (error) { console.error("recommendCareers", error); return []; }
   const scored = (data ?? []).map(mapCareer).map((c) => {
+    careerCache.set(c.id, c);
     const h = c.hollandCodes;
     let score = 0;
     if (h[0] === primary) score += 3;
@@ -160,6 +180,7 @@ export async function recommendCareers(
 }
 
 export async function getSubCareers(parentId: string): Promise<Career[]> {
+  if (subCareersCache.has(parentId)) return subCareersCache.get(parentId)!;
   const { data, error } = await supabase
     .from("careers")
     .select(CAREER_COLS)
@@ -169,10 +190,13 @@ export async function getSubCareers(parentId: string): Promise<Career[]> {
     console.error("getSubCareers", error);
     return [];
   }
-  return (data ?? []).map(mapCareer);
+  const res = (data ?? []).map(mapCareer);
+  subCareersCache.set(parentId, res);
+  return res;
 }
 
 export async function getAncestorCareers(careerId: string): Promise<Career[]> {
+  if (ancestorCareersCache.has(careerId)) return ancestorCareersCache.get(careerId)!;
   const ancestors: Career[] = [];
   let currentId: string | null = careerId;
   const visited = new Set<string>();
@@ -188,5 +212,6 @@ export async function getAncestorCareers(careerId: string): Promise<Career[]> {
     currentId = career.parentId;
   }
 
+  ancestorCareersCache.set(careerId, ancestors);
   return ancestors;
 }

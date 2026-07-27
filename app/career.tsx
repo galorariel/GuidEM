@@ -36,23 +36,32 @@ export default function CareerDetail() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     (async () => {
-      const c = await getCareer(String(id));
+      const careerId = String(id);
+      const c = await getCareer(careerId);
+      if (!isMounted) return;
       setCareer(c);
       if (c) {
-        setRelated(await getActivitiesForCareer(c.id));
-        setSubCareers(await getSubCareers(c.id));
-        setAncestors(await getAncestorCareers(c.id));
-      }
-      if (user && c) {
-        const savedIds = await getSavedIds(user.id, "career");
-        setSavedCareerIds(savedIds);
-        
-        const profile = await getProfile(user.id);
-        setGoalCareerId(profile?.career ?? null);
+        const [actRes, subRes, ancRes, savedIdsRes, profileRes] = await Promise.all([
+          getActivitiesForCareer(c.id),
+          getSubCareers(c.id),
+          getAncestorCareers(c.id),
+          user ? getSavedIds(user.id, "career") : Promise.resolve([]),
+          user ? getProfile(user.id) : Promise.resolve(null),
+        ]);
+        if (!isMounted) return;
+        setRelated(actRes);
+        setSubCareers(subRes);
+        setAncestors(ancRes);
+        setSavedCareerIds(savedIdsRes);
+        setGoalCareerId(profileRes?.career ?? null);
       }
       setLoading(false);
     })();
+    return () => {
+      isMounted = false;
+    };
   }, [id, user]);
 
   const toggleSaveCareer = async (targetCareer: Career) => {

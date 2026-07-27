@@ -37,9 +37,15 @@ export default function Search() {
   useFocusEffect(
     useCallback(() => {
       if (!user) { setSavedIds([]); setSavedCareerIds([]); setGoalCareerId(null); return; }
-      getSavedActivityIds(user.id).then(setSavedIds);
-      getSavedIds(user.id, "career").then(setSavedCareerIds);
-      getProfile(user.id).then((p) => setGoalCareerId(p?.career ?? null));
+      Promise.all([
+        getSavedActivityIds(user.id),
+        getSavedIds(user.id, "career"),
+        getProfile(user.id),
+      ]).then(([actIds, carIds, p]) => {
+        setSavedIds(actIds);
+        setSavedCareerIds(carIds);
+        setGoalCareerId(p?.career ?? null);
+      });
     }, [user])
   );
 

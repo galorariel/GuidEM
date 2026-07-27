@@ -46,6 +46,9 @@ export default function Profile() {
 
   const loadProfileData = useCallback(async () => {
     if (!user) return;
+    if (role === null) {
+      setLoading(true);
+    }
     try {
       const p = await getProfile(user.id);
       const userRole = (p?.role && p.role.trim() !== '') ? p.role.toLowerCase() : "student";
@@ -53,6 +56,7 @@ export default function Profile() {
       
       if (userRole === "student") {
         setLinkCode(p?.link_code || null);
+        setLoading(false);
         const parents = await getLinkedParents();
         setLinkedParents(parents);
       }
@@ -61,7 +65,7 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, role]);
 
   useFocusEffect(
     useCallback(() => {
