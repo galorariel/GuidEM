@@ -2,6 +2,8 @@
 
 GuidEM is a mobile application built with **React Native (Expo)** and **Supabase** designed to help high school students in Israel discover their ideal career path. It offers a structured personality questionnaire, personalized career recommendations, and an AI-generated learning roadmap (Duolingo-style path) composed of real-world external courses, articles, tutorials, and videos.
 
+> 📱 **Standalone App Deployment**: For instructions on building downloadable iOS (`.ipa`) & Android (`.apk`) apps that run independently on mobile devices without a computer, see [docs/STANDALONE_BUILD_GUIDE.md](file:///Users/arielgalor/develop/UAV/Student-Guidance_app/docs/STANDALONE_BUILD_GUIDE.md).
+
 ---
 
 ## 🚀 Features
