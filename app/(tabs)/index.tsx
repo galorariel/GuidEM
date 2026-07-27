@@ -270,6 +270,23 @@ export default function Guide() {
   const [linkCodeInput, setLinkCodeInput] = useState("");
   const [linkBusy, setLinkBusy] = useState(false);
 
+  // Auto-scroll refs & session tracking
+  const mainScrollRef = useRef<ScrollView>(null);
+  const hasAutoScrolledRef = useRef(false);
+  const userInterruptedRef = useRef(false);
+  const pathContainerYRef = useRef(0);
+
+  const handleActiveNodeYCalculated = useCallback((nodeY: number) => {
+    if (hasAutoScrolledRef.current || userInterruptedRef.current) return;
+    hasAutoScrolledRef.current = true;
+
+    setTimeout(() => {
+      if (userInterruptedRef.current) return;
+      const targetY = Math.max(0, pathContainerYRef.current + nodeY - 220);
+      mainScrollRef.current?.scrollTo({ y: targetY, animated: true });
+    }, 400);
+  }, []);
+
   const name = (user?.user_metadata?.full_name as string) || "User";
 
   // ---- Student loader --------------------------------------------------------
@@ -653,8 +670,17 @@ export default function Guide() {
       ) : (
         /* Student Dashboard */
         <ScrollView
+          ref={mainScrollRef}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          onScrollBeginDrag={() => {
+            userInterruptedRef.current = true;
+            hasAutoScrolledRef.current = true;
+          }}
+          onTouchStart={() => {
+            userInterruptedRef.current = true;
+            hasAutoScrolledRef.current = true;
+          }}
         >
           <Text style={styles.h1}>Hi {name},{"\n"}your career guide</Text>
 
@@ -724,7 +750,15 @@ export default function Guide() {
                   />
                 </View>
               ) : (
-                <View style={styles.pathWrapper}>
+                <View
+                  style={styles.pathWrapper}
+                  onLayout={(e) => {
+                    pathContainerYRef.current = e.nativeEvent.layout.y;
+                  }}
+                >
+                  {choiceBusyUnitId !== null && (
+                    <GeneratingProgressBar label="Creating your next learning unit..." />
+                  )}
                   <GuidePath
                     units={units}
                     isChoiceGenerating={choiceGenerating}
@@ -733,6 +767,7 @@ export default function Guide() {
                     onMarkStepDone={handleMarkStepDone}
                     onSubmitChoice={handleSubmitChoice}
                     onGenerateChoices={handleGenerateChoices}
+                    onActiveNodeYCalculated={handleActiveNodeYCalculated}
                   />
                 </View>
               )}

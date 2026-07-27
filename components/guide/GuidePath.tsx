@@ -22,6 +22,7 @@ interface GuidePathProps {
   onMarkStepDone: (stepId: string, unit: GuideUnitFull) => void;
   onSubmitChoice: (unit: GuideUnitFull, optionId: string) => void;
   onGenerateChoices: (unit: GuideUnitFull) => void;
+  onActiveNodeYCalculated?: (y: number) => void;
 }
 
 // Layout configuration constants
@@ -69,6 +70,7 @@ export default function GuidePath({
   onMarkStepDone,
   onSubmitChoice,
   onGenerateChoices,
+  onActiveNodeYCalculated,
 }: GuidePathProps) {
   const scrollViewRef = useRef<ScrollView>(null);
   
@@ -188,13 +190,8 @@ export default function GuidePath({
     // Scroll target prioritizes active choice node, then current step node
     const scrollTarget = activeChoiceNode || currentNode;
 
-    if (scrollTarget) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollTo({
-          y: Math.max(0, scrollTarget.y - Dimensions.get("window").height / 2.5),
-          animated: true,
-        });
-      }, 300);
+    if (scrollTarget && onActiveNodeYCalculated) {
+      onActiveNodeYCalculated(scrollTarget.y);
     }
   }, [units, isChoiceGenerating]);
 

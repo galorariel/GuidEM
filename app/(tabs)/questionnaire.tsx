@@ -1,6 +1,7 @@
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Dimensions, Animated, Easing } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Dimensions, Animated, Easing, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import CareerCard from "../../components/CareerCard";
 import CustomButton from "../../components/CustomButton";
 import RatingScale from "../../components/RatingScale"; // Import the new RatingScale component
@@ -389,8 +390,20 @@ export default function QuestionnaireTab() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: 44, paddingBottom: 20 }}>
-      <View style={{ paddingHorizontal: 22 }}>
+      <View style={styles.topHeaderRow}>
         <Text style={styles.h1}>Career Questionnaire</Text>
+        {mode === "results" && (
+          <Pressable
+            onPress={retake}
+            style={({ pressed }) => [styles.retakeHeaderWrapper, pressed && { opacity: 0.6 }]}
+            hitSlop={10}
+          >
+            <View style={styles.retakeHeaderBtn}>
+              <Ionicons name="refresh-outline" size={24} color={colors.accent} />
+            </View>
+            <Text style={styles.retakeLabelText}>Retake</Text>
+          </Pressable>
+        )}
       </View>
 
       {mode === "loading" ? (
@@ -422,8 +435,6 @@ export default function QuestionnaireTab() {
             ) : (
               <Text style={styles.sub}>No recommendations found for your type.</Text>
             )}
-
-            <CustomButton title="Retake test" onPress={retake} style={styles.retakeBtn} textStyle={{ color: "#334155" }} />
           </View>
         </ScrollView>
       ) : (
@@ -527,6 +538,32 @@ export default function QuestionnaireTab() {
 }
 
 const styles = StyleSheet.create({
+  topHeaderRow: {
+    paddingHorizontal: 22,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  retakeHeaderWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  retakeHeaderBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(16, 124, 143, 0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(16, 124, 143, 0.3)",
+  },
+  retakeLabelText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.accent,
+    marginTop: 2,
+  },
   h1: { fontSize: 26, fontFamily: fonts.heading, color: colors.heading, marginBottom: 4 },
   sub: { fontFamily: fonts.heading, fontSize: 14.5, lineHeight: 20, color: colors.heading, marginBottom: 8 },
   progressBarContainer: { height: 8, backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4, marginBottom: 16, overflow: "hidden" },

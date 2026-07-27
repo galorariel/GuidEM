@@ -58,6 +58,13 @@ export default function ChoiceNode({
 
   const branches = getBranchPositions();
 
+  const [submittingOptionId, setSubmittingOptionId] = React.useState<string | null>(null);
+
+  const handleOptionPress = (option: ChoiceOption) => {
+    setSubmittingOptionId(option.id);
+    onPressOption(option);
+  };
+
   return (
     <View style={styles.container}>
       {/* SVG branch connector lines */}
@@ -113,6 +120,7 @@ export default function ChoiceNode({
       {isPending &&
         branches.map((b) => {
           const isPause = b.option.specializationLabel == null;
+          const isThisSubmitting = isBusy && submittingOptionId === b.option.id;
           return (
             <View
               key={b.option.id}
@@ -132,8 +140,9 @@ export default function ChoiceNode({
                 iconName={isPause ? "ribbon" : "git-branch"}
                 iconSize={20}
                 iconColor="#ffffff"
+                isLoading={isThisSubmitting}
                 disabled={isBusy}
-                onPress={() => onPressOption(b.option)}
+                onPress={() => handleOptionPress(b.option)}
               />
 
               {/* Centered Small Label below circular branch */}
