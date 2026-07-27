@@ -32,6 +32,7 @@ import {
   type GuideUnitFull,
 } from "../../services/guide";
 import { clearCareerGoal, getProfile } from "../../services/supabase";
+import { generateStudentResumePdf } from "../../services/resume";
 import {
   getLinkedChildren,
   getChildProgress,
@@ -239,6 +240,28 @@ export default function Guide() {
   const [choiceBusyUnitId, setChoiceBusyUnitId] = useState<string | null>(null);
   const [choiceGenerating, setChoiceGenerating] = useState(false);
   const [journeyPaused, setJourneyPaused] = useState(false);
+  const [downloadingResume, setDownloadingResume] = useState(false);
+
+  const handleDownloadResume = async () => {
+    if (!user) return;
+    setDownloadingResume(true);
+    try {
+      const profile = await getProfile(user.id);
+      if (!profile) throw new Error("Profile not found");
+      await generateStudentResumePdf({
+        profile,
+        goalTitle,
+        specialization,
+        careerPath,
+        units,
+      });
+    } catch (err: any) {
+      console.warn("Resume download failed:", err?.message ?? err);
+      Alert.alert("Resume Export Failed", err?.message ?? "Unable to generate resume PDF.");
+    } finally {
+      setDownloadingResume(false);
+    }
+  };
 
   // Parent specific states
   const [linkedChildren, setLinkedChildren] = useState<LinkedChild[]>([]);
@@ -657,6 +680,13 @@ export default function Guide() {
                   />
                 ) : null}
                 <CustomButton
+                  title={downloadingResume ? "Generating Resume…" : "Download Resume"}
+                  onPress={handleDownloadResume}
+                  disabled={downloadingResume}
+                  style={styles.resumeBtn}
+                  textStyle={{ color: "#ffffff" }}
+                />
+                <CustomButton
                   title="Clear goal"
                   onPress={handleClear}
                   disabled={busy}
@@ -1056,5 +1086,9 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: colors.muted,
     textAlign: "center",
+  },
+  resumeBtn: {
+    backgroundColor: colors.accent,
+    marginTop: 10,
   },
 });

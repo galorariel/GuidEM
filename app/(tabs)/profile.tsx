@@ -6,9 +6,10 @@ import * as Clipboard from "expo-clipboard";
 import CustomButton from "../../components/CustomButton";
 import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
-import { resetLearningPath } from "../../services/guide";
+import { resetLearningPath, getGuideUnits } from "../../services/guide";
 import { getProfile } from "../../services/supabase";
 import { getLinkedParents, unlinkParent } from "../../services/parents";
+import { generateStudentResumePdf } from "../../services/resume";
 
 export default function Profile() {
   const { user, signOut } = useAuth();
@@ -18,6 +19,29 @@ export default function Profile() {
   const [linkedParents, setLinkedParents] = useState<{ parentId: string; parentName: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [downloadingResume, setDownloadingResume] = useState(false);
+
+  const handleDownloadResume = async () => {
+    if (!user) return;
+    setDownloadingResume(true);
+    try {
+      const profileData = await getProfile(user.id);
+      if (!profileData) throw new Error("Profile details not found.");
+      const units = await getGuideUnits(user.id);
+      await generateStudentResumePdf({
+        profile: profileData,
+        goalTitle: profileData.career_goal || null,
+        specialization: profileData.career_specialization || null,
+        careerPath: profileData.career_path || [],
+        units,
+      });
+    } catch (err: any) {
+      console.warn("Resume download failed:", err?.message ?? err);
+      Alert.alert("Resume Download Failed", err?.message ?? "Could not generate resume PDF.");
+    } finally {
+      setDownloadingResume(false);
+    }
+  };
 
   const loadProfileData = useCallback(async () => {
     if (!user) return;
@@ -160,6 +184,14 @@ export default function Profile() {
             <Ionicons name="heart-outline" size={20} color={colors.accent} />
             <Text style={styles.menuText}>Saved Careers & Activities</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+          </Pressable>
+
+          <Pressable style={styles.menuItem} onPress={handleDownloadResume} disabled={downloadingResume}>
+            <Ionicons name="document-text-outline" size={20} color={colors.accent} />
+            <Text style={styles.menuText}>
+              {downloadingResume ? "Generating Resume PDF..." : "Download Resume (PDF)"}
+            </Text>
+            <Ionicons name="download-outline" size={16} color={colors.accent} />
           </Pressable>
         </View>
       )}
