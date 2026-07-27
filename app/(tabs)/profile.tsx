@@ -2,6 +2,7 @@ import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { Alert, StyleSheet, Text, View, Share, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import * as Clipboard from "expo-clipboard";
 import CustomButton from "../../components/CustomButton";
 import { colors, fonts } from "../../constants/theme";
@@ -148,7 +149,14 @@ export default function Profile() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      <Text style={styles.h1}>Profile</Text>
+      <View style={styles.topHeaderRow}>
+        <Text style={styles.h1}>Profile</Text>
+        <Image
+          source={require("../../assets/images/logo_final.png")}
+          style={styles.headerLogo}
+          contentFit="contain"
+        />
+      </View>
 
       {/* Profile Details Card */}
       <View style={styles.profileCard}>
@@ -280,11 +288,20 @@ const styles = StyleSheet.create({
     paddingTop: 70,
     paddingBottom: 40,
   },
+  topHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  headerLogo: {
+    width: 64,
+    height: 64,
+  },
   h1: {
     fontSize: 28,
     fontFamily: fonts.heading,
     color: colors.heading,
-    marginBottom: 16,
   },
   profileCard: {
     backgroundColor: colors.card,

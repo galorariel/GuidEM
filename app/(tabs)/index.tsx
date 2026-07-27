@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import CustomButton from "../../components/CustomButton";
 import CustomInput from "../../components/CustomInput";
 import GeneratingProgressBar from "../../components/GeneratingProgressBar";
@@ -682,7 +683,14 @@ export default function Guide() {
             hasAutoScrolledRef.current = true;
           }}
         >
-          <Text style={styles.h1}>Hi {name},{"\n"}your career guide</Text>
+          <View style={styles.topTitleRow}>
+            <Text style={styles.h1}>Hi {name},{"\n"}your career guide</Text>
+            <Image
+              source={require("../../assets/images/logo_final.png")}
+              style={styles.headerLogo}
+              contentFit="contain"
+            />
+          </View>
 
           {goalTitle ? (
             <>
@@ -1125,5 +1133,17 @@ const styles = StyleSheet.create({
   resumeBtn: {
     backgroundColor: colors.accent,
     marginTop: 10,
+  },
+  topTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    width: "100%",
+    marginBottom: 4,
+  },
+  headerLogo: {
+    width: 64,
+    height: 64,
+    marginTop: 0,
   },
 });

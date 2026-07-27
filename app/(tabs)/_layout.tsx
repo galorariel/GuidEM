@@ -5,6 +5,8 @@ import { colors } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
 import { getProfile } from "../../services/supabase";
 
+import { View } from "react-native";
+
 export default function TabsLayout() {
   const { user } = useAuth();
   const [role, setRole] = useState<string | null>(null);

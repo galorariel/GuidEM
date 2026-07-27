@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image } from "expo-image";
 import ActivityCard from "../../components/ActivityCard";
 import CareerCard from "../../components/CareerCard";
 import { colors, fonts } from "../../constants/theme";
@@ -89,7 +90,14 @@ export default function Search() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.h1}>Search</Text>
+      <View style={styles.topHeaderRow}>
+        <Text style={styles.h1}>Search</Text>
+        <Image
+          source={require("../../assets/images/logo_final.png")}
+          style={styles.headerLogo}
+          contentFit="contain"
+        />
+      </View>
 
       <View style={styles.segment}>
         {(["careers", "activities"] as Mode[]).map((m) =>
@@ -198,7 +206,9 @@ export default function Search() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 22, paddingTop: 60, backgroundColor: colors.bg },
-  h1: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading, marginBottom: 12 },
+  topHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  headerLogo: { width: 64, height: 64 },
+  h1: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading },
   segment: { flexDirection: "row", gap: 8, marginBottom: 12 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: fonts.body, color: colors.heading, backgroundColor: colors.card },
   activityFiltersRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
