@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 import Soft3DBlock from "../components/Soft3DBlock";
 import ToyNodeButton from "../components/guide/ToyNodeButton";
 import { colors, fonts } from "../constants/theme";
@@ -52,6 +53,16 @@ export default function Detail() {
 
   const price = activity.priceAmount === 0 ? "Free" : `${activity.priceCurrency}${activity.priceAmount}`;
 
+  const CATEGORY_IMAGES: Record<string, string> = {
+    "Volunteering": "https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=800&q=80",
+    "Workshop": "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80",
+    "Internship": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80",
+    "University Visit": "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80",
+    "Job Shadowing": "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80",
+    "Professional Meetings": "https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=800&q=80",
+  };
+  const displayImage = activity.imageUrl || CATEGORY_IMAGES[activity.category] || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80";
+
   return (
     <View style={styles.mainWrapper}>
       {/* Subtle decorative background shapes */}
@@ -59,6 +70,11 @@ export default function Detail() {
       <View style={styles.bgDecor2} />
 
       <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, paddingBottom: 50 }}>
+        {/* Banner Image */}
+        <View style={styles.bannerContainer}>
+          <Image source={{ uri: displayImage }} style={styles.bannerImg} contentFit="cover" transition={200} />
+        </View>
+
         {/* Hero Title Block */}
         <Soft3DBlock
           title={activity.title}
@@ -164,6 +180,18 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     backgroundColor: "#107c8f",
     opacity: 0.05,
+  },
+  bannerContainer: {
+    height: 180,
+    borderRadius: 16,
+    overflow: "hidden",
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  bannerImg: {
+    width: "100%",
+    height: "100%",
   },
   heroRow: {
     flexDirection: "row",

@@ -15,7 +15,7 @@ export default function AnimatedGradientBackground({
     <View style={[styles.container, style]}>
       <LinearGradient
         colors={["#FFFFFF", "#ECF9FC", "#19BAD8"]}
-        locations={[0, 0.5, 1]}
+        locations={[0, 0.3, 0.78]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFillObject}

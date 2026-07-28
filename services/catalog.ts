@@ -17,6 +17,10 @@ export type Career = {
   tags: string[];
   hollandCodes: string[];
   imageUrl: string | null;
+  mentorName: string | null;
+  mentorTitle: string | null;
+  mentorContactType: "linkedin" | "email" | "phone" | null;
+  mentorContactValue: string | null;
 };
 
 export type Activity = {
@@ -35,7 +39,7 @@ export type CareerFilters = { subjects?: string[]; demandLevel?: string; tags?: 
 export type ActivityFilters = { category?: string; maxBudget?: number | null; location?: string };
 
 const CAREER_COLS =
-  "id,parent_id,title,description,required_education,required_skills,recommended_subjects,salary_min,salary_max,salary_currency,salary_period,work_environment,demand_level,tags,holland_codes,image_url";
+  "id,parent_id,title,description,required_education,required_skills,recommended_subjects,salary_min,salary_max,salary_currency,salary_period,work_environment,demand_level,tags,holland_codes,image_url,mentor_name,mentor_title,mentor_contact_type,mentor_contact_value";
 const ACTIVITY_COLS =
   "id,title,category,location,price_amount,price_currency,description,tags,image_url";
 
@@ -57,6 +61,10 @@ function mapCareer(r: any): Career {
     tags: r.tags ?? [],
     hollandCodes: r.holland_codes ?? [],
     imageUrl: r.image_url ?? null,
+    mentorName: r.mentor_name ?? null,
+    mentorTitle: r.mentor_title ?? null,
+    mentorContactType: r.mentor_contact_type ?? null,
+    mentorContactValue: r.mentor_contact_value ?? null,
   };
 }
 function mapActivity(r: any): Activity {

@@ -5,6 +5,7 @@ import { colors, fonts } from "../../constants/theme";
 import type { GuideChoice } from "../../services/guide";
 import type { ChoiceOption } from "../../services/guide/generator";
 import ToyNodeButton from "./ToyNodeButton";
+import GeneratingProgressBar from "../GeneratingProgressBar";
 
 interface ChoiceNodeProps {
   x: number; // center X of the path
@@ -154,6 +155,21 @@ export default function ChoiceNode({
             </View>
           );
         })}
+
+      {/* When busy generating next unit, render progress bar directly below the active branch buttons */}
+      {isBusy && (
+        <View
+          style={{
+            position: "absolute",
+            top: y + BRANCH_OFFSET_Y + 65,
+            left: 10,
+            right: 10,
+            zIndex: 20,
+          }}
+        >
+          <GeneratingProgressBar label="Creating your next learning unit..." />
+        </View>
+      )}
     </View>
   );
 }

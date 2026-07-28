@@ -60,8 +60,9 @@ export interface GeneratedStep {
 export interface GeneratedUnit {
   title: string;
   summary: string;
-  steps: GeneratedStep[]; // 5-10 steps, NO choice
+  steps: GeneratedStep[]; // 8-12 steps
   journeySummary: string; // updated rolling summary after this unit
+  choices?: GeneratedChoices; // NEW — pre-generated choices included in single call
 }
 
 export interface GeneratedChoices {
@@ -111,10 +112,11 @@ function pickByIndex<T>(pool: readonly T[], index: number): T {
 // Deterministic from `ctx.unitIndex` and choices — no randomness, no clock reads.
 
 const STEP_PLANS: readonly StepKind[][] = [
-  ["lesson", "task", "resource", "reflection", "lesson", "task"],                // 6 steps
-  ["lesson", "task", "quiz", "resource", "reflection", "lesson", "task"],        // 7 steps
-  ["lesson", "reflection", "task", "resource", "lesson", "task", "reflection", "quiz"], // 8 steps
-  ["lesson", "task", "resource", "quiz", "reflection", "lesson", "task", "resource", "reflection"], // 9 steps
+  ["lesson", "task", "resource", "reflection", "lesson", "task", "resource", "quiz"], // 8 steps
+  ["lesson", "task", "quiz", "resource", "reflection", "lesson", "task", "resource", "reflection"], // 9 steps
+  ["lesson", "task", "resource", "reflection", "lesson", "task", "resource", "quiz", "reflection", "task"], // 10 steps
+  ["lesson", "task", "resource", "quiz", "reflection", "lesson", "task", "resource", "reflection", "quiz", "task"], // 11 steps
+  ["lesson", "task", "resource", "quiz", "reflection", "lesson", "task", "resource", "reflection", "quiz", "task", "reflection"], // 12 steps
 ];
 
 // Career specialization options — each mock choice narrows the career
@@ -278,11 +280,19 @@ export const mockGenerator: UnitGenerator = {
         : `Continuing your path toward ${target}, shaped by your choice to focus on ` +
           `"${choice?.narrowedTo ?? "your progress so far"}".`;
 
+    const steps = buildSteps(ctx, choice);
+    const choiceCtx: ChoiceGenerateContext = {
+      ...ctx,
+      completedSteps: steps.map((s) => ({ kind: s.kind, title: s.title })),
+    };
+    const choices = await mockGenerator.generateChoices(choiceCtx);
+
     return {
       title,
       summary,
-      steps: buildSteps(ctx, choice),
+      steps,
       journeySummary: buildJourneySummary(ctx),
+      choices,
     };
   },
 

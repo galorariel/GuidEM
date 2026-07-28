@@ -29,7 +29,8 @@
 
 insert into public.careers
   (id, title, description, required_education, required_skills, recommended_subjects,
-   salary_min, salary_max, work_environment, demand_level, tags)
+   salary_min, salary_max, work_environment, demand_level, tags,
+   mentor_name, mentor_title, mentor_contact_type, mentor_contact_value)
 values
   ('1', 'Software Engineer',
    'Software engineers design, develop, and maintain computer programs and applications used by businesses and individuals.',
@@ -37,7 +38,8 @@ values
    array['Programming (JavaScript, Python, Java)', 'Problem solving', 'Logical thinking', 'Team collaboration'],
    array['Mathematics', 'Computer Science', 'Physics'],
    20000, 40000, 'Tech companies, startups, or remote work', 'very_high',
-   array['software','engineer','programming','javascript','python','java','problem','solving','mathematics','computer','science','physics']),
+   array['software','engineer','programming','javascript','python','java','problem','solving','mathematics','computer','science','physics'],
+   'Alex Rivers', 'Senior Software Engineer & Mentor', 'linkedin', 'https://www.linkedin.com'),
 
   ('2', 'Doctor',
    'Doctors diagnose and treat illnesses, provide medical advice, and help maintain patient health.',
@@ -45,7 +47,8 @@ values
    array['Biology knowledge', 'Communication with patients', 'Attention to detail', 'Critical thinking'],
    array['Biology', 'Chemistry', 'Mathematics'],
    15000, 35000, 'Hospitals, clinics, healthcare centers', 'high',
-   array['doctor','biology','knowledge','communication','patients','attention','detail','critical','thinking','chemistry','mathematics']),
+   array['doctor','biology','knowledge','communication','patients','attention','detail','critical','thinking','chemistry','mathematics'],
+   'Dr. Maya Lin', 'Chief Resident & Medical Mentor', 'email', 'maya.lin@guidem-mentors.org'),
 
   ('3', 'Architect',
    'Architects design buildings and plan structures that are functional, safe, and aesthetically pleasing.',
@@ -53,7 +56,8 @@ values
    array['Creativity', 'Design thinking', 'Mathematics', '3D visualization'],
    array['Art', 'Mathematics', 'Physics'],
    10000, 22000, 'Architecture firms, construction companies', 'moderate',
-   array['architect','creativity','design','thinking','mathematics','3d','visualization','art','physics']),
+   array['architect','creativity','design','thinking','mathematics','3d','visualization','art','physics'],
+   'Jordan Hayes', 'Principal Architect', 'phone', '+972 50-555-0192'),
 
   ('4', 'Lawyer',
    'Lawyers advise clients, represent them in court, and interpret laws and regulations.',
@@ -61,7 +65,8 @@ values
    array['Argumentation', 'Research skills', 'Communication', 'Critical thinking'],
    array['History', 'Civics', 'Literature'],
    9000, 30000, 'Law firms, government institutions', 'moderate',
-   array['lawyer','argumentation','research','skills','communication','critical','thinking','history','civics','literature']),
+   array['lawyer','argumentation','research','skills','communication','critical','thinking','history','civics','literature'],
+   'Elena Rostova', 'Senior Partner & Legal Advisor', 'linkedin', 'https://www.linkedin.com'),
 
   ('5', 'Mechanical Engineer',
    'Mechanical engineers design and build machines and mechanical systems used in manufacturing, transportation and energy.',
@@ -69,7 +74,8 @@ values
    array['Mathematics', 'Physics', 'CAD software', 'Problem solving'],
    array['Mathematics', 'Physics', 'Computer Science'],
    14000, 28000, 'Engineering firms, manufacturing companies', 'stable',
-   array['mechanical','engineer','mathematics','physics','cad','software','problem','solving','computer','science']),
+   array['mechanical','engineer','mathematics','physics','cad','software','problem','solving','computer','science'],
+   'Marcus Vance', 'Lead Mechanical Engineer', 'email', 'marcus.vance@guidem-mentors.org'),
 
   ('6', 'Data Scientist',
    'Data scientists analyze large datasets to find patterns and help organizations make data-driven decisions.',
@@ -77,7 +83,8 @@ values
    array['Python or R', 'Statistics', 'Machine learning', 'Data visualization'],
    array['Mathematics', 'Computer Science', 'Statistics'],
    22000, 40000, 'Technology companies, research labs', 'very_high',
-   array['data','scientist','python','r','statistics','machine','learning','visualization','mathematics','computer','science']),
+   array['data','scientist','python','r','statistics','machine','learning','visualization','mathematics','computer','science'],
+   'Sarah Chen', 'Lead Data Scientist', 'linkedin', 'https://www.linkedin.com'),
 
   ('7', 'Civil Engineer',
    'Civil engineers design and supervise infrastructure projects such as roads, bridges and buildings.',
@@ -85,7 +92,8 @@ values
    array['Structural analysis', 'Mathematics', 'Project planning'],
    array['Mathematics', 'Physics'],
    13000, 26000, 'Construction companies, government infrastructure projects', 'stable',
-   array['civil','engineer','structural','analysis','mathematics','project','planning','physics']),
+   array['civil','engineer','structural','analysis','mathematics','project','planning','physics'],
+   'David Miller', 'Infrastructure Project Director', 'phone', '+972 54-888-0231'),
 
   ('8', 'Graphic Designer',
    'Graphic designers create visual materials such as logos, advertisements and digital media.',
@@ -93,7 +101,8 @@ values
    array['Creativity', 'Adobe Photoshop / Illustrator', 'Visual storytelling'],
    array['Art', 'Design', 'Media'],
    8000, 16000, 'Design studios, marketing agencies, freelance', 'moderate',
-   array['graphic','designer','creativity','adobe','photoshop','illustrator','visual','storytelling','art','design','media']),
+   array['graphic','designer','creativity','adobe','photoshop','illustrator','visual','storytelling','art','design','media'],
+   'Mia Kova', 'Creative Director & Visual Designer', 'email', 'mia.kova@guidem-mentors.org'),
 
   ('9', 'Psychologist',
    'Psychologists study human behavior and help individuals manage emotional and mental challenges.',
@@ -101,7 +110,8 @@ values
    array['Empathy', 'Communication', 'Research', 'Analytical thinking'],
    array['Biology', 'Psychology', 'Social studies'],
    10000, 22000, 'Hospitals, clinics, schools, private practice', 'moderate',
-   array['psychologist','empathy','communication','research','analytical','thinking','biology','psychology','social','studies']),
+   array['psychologist','empathy','communication','research','analytical','thinking','biology','psychology','social','studies'],
+   'Dr. Oren Stern', 'Clinical Psychologist & Researcher', 'linkedin', 'https://www.linkedin.com'),
 
   ('10', 'Cybersecurity Analyst',
    'Cybersecurity analysts protect computer networks and systems from hacking and cyber threats.',
@@ -109,7 +119,8 @@ values
    array['Network security', 'Ethical hacking', 'Risk analysis'],
    array['Computer Science', 'Mathematics', 'Information Technology'],
    22000, 38000, 'Tech companies, banks, government agencies', 'very_high',
-   array['cybersecurity','analyst','network','security','ethical','hacking','risk','analysis','computer','science','mathematics','technology']),
+   array['cybersecurity','analyst','network','security','ethical','hacking','risk','analysis','computer','science','mathematics','technology'],
+   'Lior Ben-David', 'Head of Cyber Defense', 'email', 'lior.bendavid@guidem-mentors.org'),
 
   ('11', 'Teacher',
    'Teachers educate students and help them develop academic knowledge and critical thinking skills.',
@@ -117,7 +128,8 @@ values
    array['Communication', 'Patience', 'Teaching methods'],
    array['Literature', 'Mathematics', 'Social studies'],
    8000, 16000, 'Schools and educational institutions', 'stable',
-   array['teacher','communication','patience','teaching','methods','literature','mathematics','social','studies']),
+   array['teacher','communication','patience','teaching','methods','literature','mathematics','social','studies'],
+   'Rachel Green', 'High School Department Chair', 'phone', '+972 52-444-0199'),
 
   ('12', 'Environmental Scientist',
    'Environmental scientists research environmental issues and help develop solutions to pollution and climate change.',
@@ -125,7 +137,8 @@ values
    array['Scientific research', 'Data analysis', 'Environmental policy understanding'],
    array['Biology', 'Chemistry', 'Geography'],
    12000, 22000, 'Research institutes, environmental organizations', 'moderate',
-   array['environmental','scientist','scientific','research','data','analysis','policy','understanding','biology','chemistry','geography']),
+   array['environmental','scientist','scientific','research','data','analysis','policy','understanding','biology','chemistry','geography'],
+   'Dr. Tomer Katz', 'Environmental Policy Researcher', 'linkedin', 'https://www.linkedin.com'),
 
   ('13', 'Business Analyst',
    'Business analysts help organizations improve performance by analyzing data and business processes.',
@@ -133,7 +146,8 @@ values
    array['Data analysis', 'Business strategy', 'Problem solving'],
    array['Mathematics', 'Economics', 'Business studies'],
    18000, 32000, 'Corporations, consulting firms', 'moderate',
-   array['business','analyst','data','analysis','strategy','problem','solving','mathematics','economics','studies']),
+   array['business','analyst','data','analysis','strategy','problem','solving','mathematics','economics','studies'],
+   'Hannah Wu', 'Management Consultant', 'email', 'hannah.wu@guidem-mentors.org'),
 
   ('14', 'Journalist',
    'Journalists research and report news stories across television, newspapers and digital media.',
@@ -141,7 +155,8 @@ values
    array['Writing', 'Research', 'Communication'],
    array['Literature', 'History', 'Media studies'],
    7000, 14000, 'News organizations and media companies', 'moderate',
-   array['journalist','writing','research','communication','literature','history','media','studies']),
+   array['journalist','writing','research','communication','literature','history','media','studies'],
+   'Dan Amir', 'Senior Correspondent & Editor', 'linkedin', 'https://www.linkedin.com'),
 
   ('15', 'Pharmacist',
    'Pharmacists prepare and dispense medications while advising patients on safe drug use.',
@@ -149,7 +164,8 @@ values
    array['Chemistry knowledge', 'Attention to detail', 'Communication'],
    array['Chemistry', 'Biology', 'Mathematics'],
    12000, 20000, 'Hospitals, pharmacies, pharmaceutical companies', 'stable',
-   array['pharmacist','chemistry','knowledge','attention','detail','communication','biology','mathematics']),
+   array['pharmacist','chemistry','knowledge','attention','detail','communication','biology','mathematics'],
+   'Yael Bar', 'Hospital Pharmacy Specialist', 'phone', '+972 50-777-0155'),
 
   ('16', 'UX/UI Designer',
    'UX/UI designers create user-friendly and visually appealing interfaces for apps and websites.',
@@ -157,7 +173,8 @@ values
    array['User research', 'Wireframing', 'Design tools (Figma, Sketch)'],
    array['Art', 'Computer Science', 'Design'],
    18000, 32000, 'Tech companies, startups, freelance', 'high',
-   array['ux','ui','designer','user','research','wireframing','design','figma','sketch','art','computer','science'])
+   array['ux','ui','designer','user','research','wireframing','design','figma','sketch','art','computer','science'],
+   'Liam Noah', 'Product Design Lead', 'linkedin', 'https://www.linkedin.com')
 on conflict (id) do nothing;
 
 

@@ -106,10 +106,23 @@ export default function StepDetailSheet({
     outputRange: ["0deg", "360deg"],
   });
 
-  const openLink = (url: string) => {
-    Linking.openURL(url).catch((err) =>
-      console.error("Failed to open URL:", err)
-    );
+  const openLink = async (url: string, fallbackTopic?: string) => {
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        throw new Error("URL cannot be handled directly");
+      }
+    } catch (err) {
+      console.warn("Failed to open primary URL, using smart search fallback:", err);
+      if (fallbackTopic) {
+        const fallbackUrl = `https://www.google.com/search?q=${encodeURIComponent(fallbackTopic)}`;
+        Linking.openURL(fallbackUrl).catch((e) =>
+          console.error("Fallback search failed:", e)
+        );
+      }
+    }
   };
 
   const renderInnerContent = () => {
@@ -251,7 +264,7 @@ export default function StepDetailSheet({
 
             {hasLink && (
               <Pressable
-                onPress={() => openLink(payload.externalUrl)}
+                onPress={() => openLink(payload.externalUrl, `${step.title} ${payload.linkLabel || ''}`.trim())}
                 style={styles.linkCard}
               >
                 <View style={styles.linkIconWrapper}>

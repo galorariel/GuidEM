@@ -159,35 +159,31 @@ async function generateUnit(ctx: any, apiKey: string) {
   const majors = ctx.profile.majors?.length ? ctx.profile.majors.join(", ") : "general subjects";
 
   const systemInstruction = `You are GuidEM, a professional career coach and curriculum designer for high school students in Israel.
-Your task is to generate a personalized learning unit (roadmap) of 5 to 10 steps that builds the student's toolset for their chosen career and specialization.
+Your task is to generate a personalized learning unit (roadmap) of 10 to 14 steps that builds the student's toolset for their chosen career and specialization, ALONG WITH the branching choice options for where their career path should go next after this unit is completed.
 You MUST personalize the path based on the student's location (city), current grade, school majors/subjects, Holland code personality type, and their previous path decisions.
 
 Each step should include a real-world external link when appropriate (courses, video links, articles, documentation, LinkedIn queries, tutorials) so the student can open them externally on their phone.
 
 RULES FOR EXTERNAL LINKS — follow these strictly:
-1. You MUST provide specific, direct links — NOT generic homepage links and NOT search query links. The student should tap and land on the exact resource.
-2. Only use URLs from major, well-known platforms where you are confident the page exists. Good sources include:
+1. Provide specific, direct links to high-quality educational content for 50% to 70% of the steps (especially lesson, task, and resource steps).
+2. Use verified URLs from major, well-known platforms relevant to the step's subject. Reliable platforms include:
    - Coursera (e.g. https://www.coursera.org/learn/google-ux-design)
-   - Khan Academy (e.g. https://www.khanacademy.org/computing/computer-programming)
-   - freeCodeCamp (e.g. https://www.freecodecamp.org/learn/responsive-web-design/)
-   - YouTube specific videos (e.g. https://www.youtube.com/watch?v=VIDEO_ID) — use only video IDs you are certain about
+   - Khan Academy (e.g. https://www.khanacademy.org/computing)
+   - freeCodeCamp (e.g. https://www.freecodecamp.org/learn)
    - MDN Web Docs (e.g. https://developer.mozilla.org/en-US/docs/Learn)
-   - Google Developers (e.g. https://developers.google.com/web/fundamentals)
-   - Microsoft Learn (e.g. https://learn.microsoft.com/en-us/training/)
-   - LinkedIn Learning landing pages
-   - TED Talks (e.g. https://www.ted.com/talks/speaker_name_talk_title)
-   - Official documentation sites for specific technologies
-3. AVOID linking to pages that are likely to change or may not exist:
-   - Do NOT guess blog post URLs, specific article slugs, or deep nested paths you are unsure about.
-   - Do NOT construct URLs by combining a domain with a topic slug you invented.
-4. If you cannot confidently provide a specific direct URL for a resource, it is BETTER to omit the externalUrl for that step entirely and describe the resource in the body text so the student can find it themselves.
-5. Every URL must be complete and properly formatted (https://).
+   - Google Certificates / Developers (e.g. https://grow.google/certificates)
+   - Microsoft Learn (e.g. https://learn.microsoft.com/en-us/training)
+   - Kaggle (e.g. https://www.kaggle.com/learn)
+   - W3Schools (e.g. https://www.w3schools.com)
+3. Do NOT invent fake YouTube video IDs or broken article slugs. Link to the official course portal, documentation section, or certificate homepage for the topic.
+4. Every URL must be complete, functional, and properly formatted (https://).
+5. Always provide a clear, descriptive linkLabel (e.g. "Explore Google UX Course", "Read MDN Web Guide").
 
-Do NOT output any markdown. Output a single valid JSON object:
+Do NOT output any markdown. Output a single valid JSON object matching this structure:
 {
   "title": "Unit Title",
   "summary": "Brief summary of this unit",
-  "journeySummary": "Rolling prose summary (~150 words) of the student's progress so far, updated with this unit.",
+  "journeySummary": "Rolling prose summary (~100 words) of the student's progress so far, updated with this unit.",
   "steps": [
     {
       "kind": "lesson" | "task" | "reflection" | "resource" | "quiz",
@@ -198,8 +194,23 @@ Do NOT output any markdown. Output a single valid JSON object:
         "linkLabel": "Open Course Name" (optional)
       }
     }
-  ]
+  ],
+  "choices": {
+    "prompt": "Question asking the student what specialization direction to focus on next.",
+    "options": [
+      {
+        "id": "choice-opt-1",
+        "label": "Short option title",
+        "description": "1-2 sentence description of this branch direction",
+        "specializationLabel": "New career title (e.g. Software Engineer — Frontend Developer), or null for pause option"
+      }
+    ],
+    "isPauseOffered": false
+  }
 }`;
+
+  // Compress choice history to last 3 decisions to keep prompt tokens lightweight
+  const recentHistory = (ctx.choiceHistory ?? []).slice(-3);
 
   const prompt = `Student Data:
 - Name: ${ctx.profile.fullName}
@@ -210,10 +221,10 @@ Do NOT output any markdown. Output a single valid JSON object:
 - School Majors: ${majors}
 - RIASEC Personality Type: ${ctx.personalityType}
 - Unit Index: ${ctx.unitIndex}
-- Prior path choices made: ${JSON.stringify(ctx.choiceHistory)}
-- Qualitative journey recap: ${ctx.journeySummary}
+- Recent path decisions: ${JSON.stringify(recentHistory)}
+- Journey recap: ${ctx.journeySummary}
 
-Generate the unit plan for Unit ${ctx.unitIndex + 1} of their career journey.`;
+Generate the unit plan (10-14 steps) and next branching choices for Unit ${ctx.unitIndex + 1} of their career journey.`;
 
   return await callGemini(systemInstruction, prompt, apiKey);
 }

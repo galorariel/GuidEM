@@ -389,7 +389,7 @@ export default function QuestionnaireTab() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: 44, paddingBottom: 20 }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: 62, paddingBottom: 20 }}>
       <View style={styles.topHeaderRow}>
         <Text style={styles.h1}>Career Questionnaire</Text>
         {mode === "results" && (

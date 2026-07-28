@@ -299,8 +299,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerLogo: {
-    width: 64,
-    height: 64,
+    width: 80,
+    height: 80,
   },
   h1: {
     fontSize: 28,

@@ -474,7 +474,20 @@ async function persistGeneratedUnit(
       console.error("persistGeneratedUnit steps", stepsError);
       throw stepsError;
     }
-    // No choice insertion here — choices are generated post-completion
+
+    // Persist pre-generated choices if provided by generator in single call
+    if (gen.choices) {
+      const { error: choicesError } = await supabase.from("guide_choices").insert({
+        unit_id: unitId,
+        user_id: userId,
+        prompt: gen.choices.prompt,
+        options: gen.choices.options,
+      });
+      if (choicesError) {
+        console.error("persistGeneratedUnit choices", choicesError);
+        throw choicesError;
+      }
+    }
   }
 
   const { data, error } = await supabase

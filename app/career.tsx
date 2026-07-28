@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View, Linking } from "react-native";
 import ActivityCard from "../components/ActivityCard";
 import Soft3DBlock from "../components/Soft3DBlock";
 import ToyNodeButton from "../components/guide/ToyNodeButton";
@@ -208,6 +208,64 @@ export default function CareerDetail() {
         >
           <Text style={styles.bodyText}>{career.workEnvironment}</Text>
         </Soft3DBlock>
+
+        {/* Block 3.5: Contact a Professional (database-driven mentor info) */}
+        {(() => {
+          const name = career.mentorName || "Alex Rivers";
+          const title = career.mentorTitle || `Senior ${career.title} & Mentor`;
+          const contactType = career.mentorContactType || "linkedin";
+          const contactValue = career.mentorContactValue || "https://www.linkedin.com";
+
+          return (
+            <Soft3DBlock
+              title="Contact a Professional"
+              subtitle="Connect with an industry mentor & ask career questions"
+              iconName="people-outline"
+              theme="teal"
+              index={3.5}
+            >
+              <View style={styles.proContainer}>
+                <View style={styles.proHeader}>
+                  <View style={styles.proAvatar}>
+                    <Ionicons name="person" size={24} color="#8b5cf6" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.proName}>{name}</Text>
+                    <Text style={styles.proTitle}>{title}</Text>
+                  </View>
+                </View>
+
+                <View style={{ marginTop: 12 }}>
+                  {contactType === "linkedin" ? (
+                    <Pressable
+                      style={styles.proContactBtn}
+                      onPress={() => Linking.openURL(contactValue)}
+                    >
+                      <Ionicons name="logo-linkedin" size={18} color="#0077b5" />
+                      <Text style={styles.proContactBtnText}>Connect on LinkedIn</Text>
+                    </Pressable>
+                  ) : contactType === "email" ? (
+                    <Pressable
+                      style={styles.proContactBtn}
+                      onPress={() => Linking.openURL(`mailto:${contactValue}?subject=Question regarding ${career.title}`)}
+                    >
+                      <Ionicons name="mail-outline" size={18} color={colors.accent} />
+                      <Text style={styles.proContactBtnText}>Email: {contactValue}</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      style={styles.proContactBtn}
+                      onPress={() => Linking.openURL(`tel:${contactValue.replace(/\s+/g, '')}`)}
+                    >
+                      <Ionicons name="call-outline" size={18} color="#16a34a" />
+                      <Text style={styles.proContactBtnText}>Call: {contactValue}</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+            </Soft3DBlock>
+          );
+        })()}
 
         {/* Block 4: Required Education & Skills */}
         <Soft3DBlock
@@ -424,6 +482,49 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 6,
+  },
+  proContainer: {
+    paddingVertical: 4,
+  },
+  proHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  proAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(139, 92, 246, 0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  proName: {
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    color: colors.heading,
+  },
+  proTitle: {
+    fontFamily: fonts.body,
+    fontSize: 12.5,
+    color: colors.muted,
+  },
+  proContactBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  proContactBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.heading,
   },
   bulletText: {
     fontFamily: fonts.body,

@@ -213,7 +213,7 @@ export default function Search() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 22, paddingTop: 60, backgroundColor: colors.bg },
   topHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  headerLogo: { width: 64, height: 64 },
+  headerLogo: { width: 80, height: 80 },
   h1: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading },
   segment: { flexDirection: "row", gap: 8, marginBottom: 12 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: fonts.body, color: colors.heading, backgroundColor: colors.card },

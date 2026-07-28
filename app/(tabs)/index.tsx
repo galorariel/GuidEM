@@ -768,9 +768,6 @@ export default function Guide() {
                     pathContainerYRef.current = e.nativeEvent.layout.y;
                   }}
                 >
-                  {choiceBusyUnitId !== null && (
-                    <GeneratingProgressBar label="Creating your next learning unit..." />
-                  )}
                   <GuidePath
                     units={units}
                     isChoiceGenerating={choiceGenerating}
@@ -1146,8 +1143,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   headerLogo: {
-    width: 64,
-    height: 64,
-    marginTop: 0,
+    width: 80,
+    height: 80,
+    marginTop: -4,
   },
 });
