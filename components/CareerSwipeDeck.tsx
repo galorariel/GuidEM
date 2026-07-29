@@ -29,9 +29,12 @@ type Props = {
   onPressCareer: (id: string) => void;
 };
 
+type SwipeDirection = "right" | "left";
+
 type HistoryItem = {
   career: Career;
   wasSaved: boolean;
+  direction: SwipeDirection;
 };
 
 // Helper: Calculate Holland code match percentage
@@ -65,10 +68,18 @@ export default function CareerSwipeDeck({
   onPressCareer,
 }: Props) {
   const { t } = useLanguage();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  // Local deck state to manage seamless card slicing & undo fly-in without pop-in glitches
+  const [deck, setDeck] = useState<Career[]>(careers);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // Physics animation values
+  // Sync deck when careers list prop changes significantly
+  useEffect(() => {
+    setDeck(careers);
+    setHistory([]);
+  }, [careers]);
+
+  // Active top card position
   const pan = useRef(new Animated.ValueXY()).current;
 
   // Subtle Idle Floating animation for active top card
@@ -96,19 +107,12 @@ export default function CareerSwipeDeck({
     return () => idleLoopRef.current?.stop();
   }, [idleAnim]);
 
-  // Reset index when careers list changes completely
-  useEffect(() => {
-    setCurrentIndex(0);
-    setHistory([]);
-    pan.setValue({ x: 0, y: 0 });
-  }, [careers.length]);
-
-  const currentCareer = careers[currentIndex];
-  const nextCareer = careers[currentIndex + 1];
-  const thirdCareer = careers[currentIndex + 2];
+  const currentCareer = deck[0];
+  const nextCareer = deck[1];
+  const thirdCareer = deck[2];
   const isGoal = currentCareer && goalCareerId === currentCareer.id;
 
-  // PanResponder gesture setup
+  // PanResponder gesture setup for active top card
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -123,9 +127,9 @@ export default function CareerSwipeDeck({
         idleLoopRef.current?.start();
 
         if (gestureState.dx > SWIPE_THRESHOLD) {
-          swipeRight();
+          swipe("right");
         } else if (gestureState.dx < -SWIPE_THRESHOLD) {
-          swipeLeft();
+          swipe("left");
         } else {
           resetPosition();
         }
@@ -141,56 +145,73 @@ export default function CareerSwipeDeck({
     }).start();
   };
 
-  const swipeRight = () => {
+  const swipe = (direction: SwipeDirection) => {
     if (!currentCareer) return;
-    Animated.timing(pan, {
-      toValue: { x: SCREEN_WIDTH + 150, y: 0 },
-      duration: 220,
-      useNativeDriver: false,
-    }).start(() => {
-      const alreadySaved = savedCareerIds.includes(currentCareer.id);
-      if (!alreadySaved) {
-        onToggleSave(currentCareer.id);
-      }
-      setHistory((prev) => [...prev, { career: currentCareer, wasSaved: !alreadySaved }]);
-      setCurrentIndex((prev) => prev + 1);
-      pan.setValue({ x: 0, y: 0 });
-    });
-  };
 
-  const swipeLeft = () => {
-    if (!currentCareer) return;
+    const targetX = direction === "right" ? SCREEN_WIDTH * 1.4 : -SCREEN_WIDTH * 1.4;
+
     Animated.timing(pan, {
-      toValue: { x: -SCREEN_WIDTH - 150, y: 0 },
+      toValue: { x: targetX, y: 0 },
       duration: 220,
       useNativeDriver: false,
     }).start(() => {
-      setHistory((prev) => [...prev, { career: currentCareer, wasSaved: false }]);
-      setCurrentIndex((prev) => prev + 1);
+      let newlySaved = false;
+
+      if (direction === "right") {
+        const alreadySaved = savedCareerIds.includes(currentCareer.id);
+        if (!alreadySaved) {
+          onToggleSave(currentCareer.id);
+          newlySaved = true;
+        }
+      }
+
+      setHistory((prev) => [
+        ...prev,
+        { career: currentCareer, wasSaved: newlySaved, direction },
+      ]);
+
+      // Remove top card from deck state, then reset pan coordinates for the next card
+      setDeck((prev) => prev.slice(1));
       pan.setValue({ x: 0, y: 0 });
     });
   };
 
   const handleUndo = () => {
-    if (history.length === 0 || currentIndex === 0) return;
+    if (history.length === 0) return;
+
     const lastItem = history[history.length - 1];
-    
+
+    // If it was saved during swipe right, revert the save
     if (lastItem.wasSaved && savedCareerIds.includes(lastItem.career.id)) {
       onToggleSave(lastItem.career.id);
     }
 
+    // Pop history item
     setHistory((prev) => prev.slice(0, -1));
-    setCurrentIndex((prev) => prev - 1);
-    pan.setValue({ x: 0, y: 0 });
+
+    // Pre-position top card off-screen on the side it left from (right or left)
+    const initialOffscreenX = lastItem.direction === "right" ? SCREEN_WIDTH * 1.3 : -SCREEN_WIDTH * 1.3;
+    pan.setValue({ x: initialOffscreenX, y: 0 });
+
+    // Prepend career back to top of deck
+    setDeck((prev) => [lastItem.career, ...prev]);
+
+    // Animate top card sliding BACK IN smoothly to center
+    Animated.spring(pan, {
+      toValue: { x: 0, y: 0 },
+      friction: 7,
+      tension: 40,
+      useNativeDriver: false,
+    }).start();
   };
 
   const handleRestart = () => {
-    setCurrentIndex(0);
+    setDeck(careers);
     setHistory([]);
     pan.setValue({ x: 0, y: 0 });
   };
 
-  // Active Card Interpolations
+  // Top Active Card Rotations & Badges
   const rotate = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: ["-12deg", "0deg", "12deg"],
@@ -214,16 +235,16 @@ export default function CareerSwipeDeck({
     extrapolate: "clamp",
   });
 
-  // Stack Depth Physical Card Pile Mechanics (Cards 2 & 3 peek out with distinct rotation & top offset)
+  // Physical Card Stack Depth Mechanics (Cards 2 & 3 peek out with distinct rotation angles & offsets)
   const card2Rotate = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: ["0deg", "-2.5deg", "0deg"],
+    outputRange: ["0deg", "-3deg", "0deg"],
     extrapolate: "clamp",
   });
 
   const card2Scale = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: [1, 0.96, 1],
+    outputRange: [1, 0.95, 1],
     extrapolate: "clamp",
   });
 
@@ -235,13 +256,13 @@ export default function CareerSwipeDeck({
 
   const card3Rotate = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: ["-2.5deg", "2.5deg", "-2.5deg"],
+    outputRange: ["-3deg", "3.5deg", "-3deg"],
     extrapolate: "clamp",
   });
 
   const card3Scale = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: [0.96, 0.92, 0.96],
+    outputRange: [0.95, 0.90, 0.95],
     extrapolate: "clamp",
   });
 
@@ -266,7 +287,7 @@ export default function CareerSwipeDeck({
     );
   }
 
-  // Preloaded Card Inner Content Component
+  // Preloaded Card Inner Content Renderer
   const renderCardInnerContent = (careerItem: Career, isTopCard: boolean) => {
     const itemMatch = getMatchScore(userPersonalityType, careerItem.hollandCodes);
     return (
@@ -275,7 +296,7 @@ export default function CareerSwipeDeck({
         onPress={() => isTopCard && onPressCareer(careerItem.id)}
         pointerEvents={isTopCard ? "auto" : "none"}
       >
-        {/* Top Card Header */}
+        {/* Card Header */}
         <View style={styles.cardHeaderRow}>
           <View style={{ flex: 1, paddingRight: 8 }}>
             <Text style={styles.cardTitle}>{careerItem.title}</Text>
@@ -351,9 +372,9 @@ export default function CareerSwipeDeck({
 
   return (
     <View style={styles.container}>
-      {/* Outer Card Deck Container with Height Padding for Physical Stack */}
+      {/* Outer Card Deck Container with Height Padding for Stack */}
       <View style={styles.deckContainer}>
-        {/* Card 3 (Bottom Card in Stack - Peeked right with +2.5deg angle and top offset) */}
+        {/* Card 3 (Bottom Card in Stack - Peeked right with +3.5deg angle) */}
         {thirdCareer && (
           <Animated.View
             key={`card3_${thirdCareer.id}`}
@@ -373,7 +394,7 @@ export default function CareerSwipeDeck({
           </Animated.View>
         )}
 
-        {/* Card 2 (Middle Card in Stack - Peeked left with -2.5deg angle and top offset) */}
+        {/* Card 2 (Middle Card in Stack - Peeked left with -3deg angle) */}
         {nextCareer && (
           <Animated.View
             key={`card2_${nextCareer.id}`}
@@ -393,7 +414,7 @@ export default function CareerSwipeDeck({
           </Animated.View>
         )}
 
-        {/* Active Card 1 (Top Card with Physics, Keyed by currentCareer.id to eliminate pop-in glitch) */}
+        {/* Active Card 1 (Top Active Card with Gesture Physics & Idle Float) */}
         <Animated.View
           key={`card1_${currentCareer.id}`}
           {...panResponder.panHandlers}
@@ -424,19 +445,24 @@ export default function CareerSwipeDeck({
           {/* Full Card Content */}
           {renderCardInnerContent(currentCareer, true)}
 
-          {/* Controls Bar: Undo + Exact Catalog ToyNodeButton Palette */}
+          {/* Controls Bar: Yellow 3D ToyNodeButton for Undo + Compass 3D ToyNodeButton for Goal */}
           <View style={styles.controlsBar}>
-            {/* Undo Button */}
-            <Pressable
-              onPress={handleUndo}
-              disabled={history.length === 0}
-              style={[styles.controlBtn, styles.undoBtn, history.length === 0 && styles.btnDisabled]}
-            >
-              <Ionicons name="arrow-undo" size={22} color={history.length > 0 ? "#f59e0b" : "#cbd5e1"} />
-            </Pressable>
+            {/* 3D ToyNode Undo Button in Vibrant Yellow (#f59e0b / #d97706) */}
+            <View style={styles.btnWrapper}>
+              <ToyNodeButton
+                size={54}
+                topColor={history.length > 0 ? "#f59e0b" : "#e2e8f0"}
+                sideColor={history.length > 0 ? "#d97706" : "#cbd5e1"}
+                iconName="arrow-undo"
+                iconSize={24}
+                iconColor="#ffffff"
+                disabled={history.length === 0}
+                onPress={handleUndo}
+              />
+            </View>
 
-            {/* ToyNodeButton Compass for Setting Goal (Exact catalog color palette: #55C5B1 / #107c8f) */}
-            <View style={styles.goalBtnWrapper}>
+            {/* 3D ToyNode Compass Goal Button (Exact Catalog Palette: #55C5B1 / #107c8f) */}
+            <View style={styles.btnWrapper}>
               <ToyNodeButton
                 size={54}
                 topColor={isGoal ? "#55C5B1" : "#107c8f"}
@@ -647,36 +673,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 28,
+    gap: 32,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#f1f5f9",
   },
-  controlBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  btnWrapper: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f8fafc",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  undoBtn: {
-    backgroundColor: "#fffbeb",
-    borderColor: "#fef3c7",
-  },
-  goalBtnWrapper: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  btnDisabled: {
-    opacity: 0.4,
   },
   emptyContainer: {
     width: "100%",
