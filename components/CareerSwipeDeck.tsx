@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect } from "react";
 import {
   Animated,
   Dimensions,
+  Easing,
   PanResponder,
   Pressable,
   StyleSheet,
@@ -40,20 +41,16 @@ function getMatchScore(userType: string | null | undefined, careerCodes: string[
   const normalizedUser = userType.trim().toLowerCase();
   const userFirstChar = normalizedUser.charAt(0);
 
-  // Check if primary code matches
   const matchIndex = careerCodes.findIndex((code) => {
     const norm = code.trim().toLowerCase();
     return norm === normalizedUser || norm.charAt(0) === userFirstChar;
   });
 
   if (matchIndex === 0) {
-    // Top match: 88% - 96%
     return 88 + (normalizedUser.length % 9);
   } else if (matchIndex > 0) {
-    // Secondary match: 72% - 84%
     return 72 + (normalizedUser.length % 13);
   } else {
-    // Base potential match: 55% - 68%
     return 55 + (normalizedUser.length % 14);
   }
 }
@@ -71,8 +68,33 @@ export default function CareerSwipeDeck({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // Animation values
+  // Physics animation values
   const pan = useRef(new Animated.ValueXY()).current;
+
+  // Subtle Idle Floating animation for active top card
+  const idleAnim = useRef(new Animated.Value(0)).current;
+  const idleLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    idleLoopRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(idleAnim, {
+          toValue: 1,
+          duration: 1600,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: false,
+        }),
+        Animated.timing(idleAnim, {
+          toValue: 0,
+          duration: 1600,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: false,
+        }),
+      ])
+    );
+    idleLoopRef.current.start();
+    return () => idleLoopRef.current?.stop();
+  }, [idleAnim]);
 
   // Reset index when careers list changes completely
   useEffect(() => {
@@ -82,18 +104,25 @@ export default function CareerSwipeDeck({
 
   const currentCareer = careers[currentIndex];
   const nextCareer = careers[currentIndex + 1];
+  const thirdCareer = careers[currentIndex + 2];
   const isGoal = currentCareer && goalCareerId === currentCareer.id;
-  const isSaved = currentCareer && savedCareerIds.includes(currentCareer.id);
 
   // PanResponder gesture setup
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        // Pause idle float when dragging
+        idleLoopRef.current?.stop();
+      },
       onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
         useNativeDriver: false,
       }),
       onPanResponderRelease: (_, gestureState) => {
+        // Resume idle float
+        idleLoopRef.current?.start();
+
         if (gestureState.dx > SWIPE_THRESHOLD) {
           swipeRight();
         } else if (gestureState.dx < -SWIPE_THRESHOLD) {
@@ -164,11 +193,16 @@ export default function CareerSwipeDeck({
     pan.setValue({ x: 0, y: 0 });
   };
 
-  // Interpolated card rotation and opacity dynamics
+  // Interpolated card rotation, opacities, and idle float
   const rotate = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: ["-10deg", "0deg", "10deg"],
     extrapolate: "clamp",
+  });
+
+  const idleOffsetY = idleAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -6],
   });
 
   const likeOpacity = pan.x.interpolate({
@@ -183,9 +217,28 @@ export default function CareerSwipeDeck({
     extrapolate: "clamp",
   });
 
-  const nextCardScale = pan.x.interpolate({
+  // Stack depth interpolations for Card 2 and Card 3
+  const card2Scale = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: [1, 0.95, 1],
+    extrapolate: "clamp",
+  });
+
+  const card2TranslateY = pan.x.interpolate({
+    inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+    outputRange: [0, 12, 0],
+    extrapolate: "clamp",
+  });
+
+  const card3Scale = pan.x.interpolate({
+    inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+    outputRange: [0.95, 0.90, 0.95],
+    extrapolate: "clamp",
+  });
+
+  const card3TranslateY = pan.x.interpolate({
+    inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+    outputRange: [12, 24, 12],
     extrapolate: "clamp",
   });
 
@@ -206,33 +259,130 @@ export default function CareerSwipeDeck({
 
   const matchScore = getMatchScore(userPersonalityType, currentCareer.hollandCodes);
 
+  // Card Content Renderer (Used for full preloading across Card 1, Card 2, and Card 3)
+  const renderCardInnerContent = (careerItem: Career, isTopCard: boolean) => {
+    const itemMatch = getMatchScore(userPersonalityType, careerItem.hollandCodes);
+    return (
+      <Pressable
+        style={{ flex: 1 }}
+        onPress={() => isTopCard && onPressCareer(careerItem.id)}
+        pointerEvents={isTopCard ? "auto" : "none"}
+      >
+        {/* Top Card Header */}
+        <View style={styles.cardHeaderRow}>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text style={styles.cardTitle}>{careerItem.title}</Text>
+            {careerItem.demandLevel ? (
+              <View style={styles.demandBadge}>
+                <Ionicons name="trending-up" size={13} color={colors.accent} />
+                <Text style={styles.demandText}>{careerItem.demandLevel}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Match Score Badge */}
+          {itemMatch !== null ? (
+            <View style={styles.matchScoreBadge}>
+              <Text style={styles.matchScoreVal}>{itemMatch}%</Text>
+              <Text style={styles.matchScoreLabel}>{t("swipe_match_score")}</Text>
+            </View>
+          ) : (
+            <Pressable
+              style={styles.quizPromptBadge}
+              onPress={(e) => {
+                e.stopPropagation();
+                router.push("/(tabs)/questionnaire");
+              }}
+            >
+              <Ionicons name="sparkles" size={14} color={colors.accent} />
+              <Text style={styles.quizPromptText}>{t("swipe_take_quiz")}</Text>
+            </Pressable>
+          )}
+        </View>
+
+        {/* Description */}
+        <Text style={styles.cardDescription} numberOfLines={4}>
+          {careerItem.description}
+        </Text>
+
+        {/* Career Stats Grid */}
+        <View style={styles.statsGrid}>
+          {careerItem.salaryMin && careerItem.salaryMax ? (
+            <View style={styles.statBox}>
+              <Ionicons name="cash-outline" size={16} color={colors.accent} />
+              <Text style={styles.statValue}>
+                {careerItem.salaryCurrency}{careerItem.salaryMin.toLocaleString()} - {careerItem.salaryCurrency}{careerItem.salaryMax.toLocaleString()}
+              </Text>
+              <Text style={styles.statLabel}>Salary</Text>
+            </View>
+          ) : null}
+
+          {careerItem.workEnvironment ? (
+            <View style={styles.statBox}>
+              <Ionicons name="business-outline" size={16} color={colors.accent} />
+              <Text style={styles.statValue} numberOfLines={1}>
+                {careerItem.workEnvironment}
+              </Text>
+              <Text style={styles.statLabel}>Environment</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Tags / Subjects */}
+        {careerItem.recommendedSubjects && careerItem.recommendedSubjects.length > 0 && (
+          <View style={styles.tagsRow}>
+            {careerItem.recommendedSubjects.slice(0, 3).map((sub, idx) => (
+              <View key={idx} style={styles.tagChip}>
+                <Text style={styles.tagChipText}>🎓 {sub}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </Pressable>
+    );
+  };
+
   return (
     <View style={styles.container}>
       {/* Deck Container */}
       <View style={styles.deckContainer}>
-        {/* Next Card (Background stacked effect) */}
+        {/* Card 3 (Bottom Stack Depth) */}
+        {thirdCareer && (
+          <Animated.View
+            style={[
+              styles.card,
+              styles.thirdCard,
+              { transform: [{ scale: card3Scale }, { translateY: card3TranslateY }] },
+            ]}
+          >
+            {renderCardInnerContent(thirdCareer, false)}
+          </Animated.View>
+        )}
+
+        {/* Card 2 (Middle Stack Depth - Fully Preloaded) */}
         {nextCareer && (
           <Animated.View
             style={[
               styles.card,
               styles.nextCard,
-              { transform: [{ scale: nextCardScale }] },
+              { transform: [{ scale: card2Scale }, { translateY: card2TranslateY }] },
             ]}
           >
-            <View style={styles.cardHeaderRow}>
-              <Text style={styles.cardTitle} numberOfLines={1}>{nextCareer.title}</Text>
-            </View>
-            <Text style={styles.cardDescription} numberOfLines={3}>{nextCareer.description}</Text>
+            {renderCardInnerContent(nextCareer, false)}
           </Animated.View>
         )}
 
-        {/* Top Active Card (Swipable) */}
+        {/* Active Card 1 (Top Active Card with Physics & Idle Float) */}
         <Animated.View
           {...panResponder.panHandlers}
           style={[
             styles.card,
             {
-              transform: [{ translateX: pan.x }, { translateY: pan.y }, { rotate }],
+              transform: [
+                { translateX: pan.x },
+                { translateY: Animated.add(pan.y, idleOffsetY) },
+                { rotate },
+              ],
             },
           ]}
         >
@@ -248,80 +398,10 @@ export default function CareerSwipeDeck({
             <Text style={styles.nopeText}>SKIP</Text>
           </Animated.View>
 
-          <Pressable style={{ flex: 1 }} onPress={() => onPressCareer(currentCareer.id)}>
-            {/* Top Card Header */}
-            <View style={styles.cardHeaderRow}>
-              <View style={{ flex: 1, paddingRight: 8 }}>
-                <Text style={styles.cardTitle}>{currentCareer.title}</Text>
-                {currentCareer.demandLevel ? (
-                  <View style={styles.demandBadge}>
-                    <Ionicons name="trending-up" size={13} color={colors.accent} />
-                    <Text style={styles.demandText}>{currentCareer.demandLevel}</Text>
-                  </View>
-                ) : null}
-              </View>
+          {/* Full Card Content */}
+          {renderCardInnerContent(currentCareer, true)}
 
-              {/* Match Score Badge */}
-              {matchScore !== null ? (
-                <View style={styles.matchScoreBadge}>
-                  <Text style={styles.matchScoreVal}>{matchScore}%</Text>
-                  <Text style={styles.matchScoreLabel}>{t("swipe_match_score")}</Text>
-                </View>
-              ) : (
-                <Pressable
-                  style={styles.quizPromptBadge}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    router.push("/(tabs)/questionnaire");
-                  }}
-                >
-                  <Ionicons name="sparkles" size={14} color={colors.accent} />
-                  <Text style={styles.quizPromptText}>{t("swipe_take_quiz")}</Text>
-                </Pressable>
-              )}
-            </View>
-
-            {/* Description */}
-            <Text style={styles.cardDescription} numberOfLines={4}>
-              {currentCareer.description}
-            </Text>
-
-            {/* Career Stats Grid */}
-            <View style={styles.statsGrid}>
-              {currentCareer.salaryMin && currentCareer.salaryMax ? (
-                <View style={styles.statBox}>
-                  <Ionicons name="cash-outline" size={16} color={colors.accent} />
-                  <Text style={styles.statValue}>
-                    {currentCareer.salaryCurrency}{currentCareer.salaryMin.toLocaleString()} - {currentCareer.salaryCurrency}{currentCareer.salaryMax.toLocaleString()}
-                  </Text>
-                  <Text style={styles.statLabel}>Salary</Text>
-                </View>
-              ) : null}
-
-              {currentCareer.workEnvironment ? (
-                <View style={styles.statBox}>
-                  <Ionicons name="business-outline" size={16} color={colors.accent} />
-                  <Text style={styles.statValue} numberOfLines={1}>
-                    {currentCareer.workEnvironment}
-                  </Text>
-                  <Text style={styles.statLabel}>Environment</Text>
-                </View>
-              ) : null}
-            </View>
-
-            {/* Tags / Subjects */}
-            {currentCareer.recommendedSubjects && currentCareer.recommendedSubjects.length > 0 && (
-              <View style={styles.tagsRow}>
-                {currentCareer.recommendedSubjects.slice(0, 3).map((sub, idx) => (
-                  <View key={idx} style={styles.tagChip}>
-                    <Text style={styles.tagChipText}>🎓 {sub}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </Pressable>
-
-          {/* Bottom Action Controls Bar inside Card */}
+          {/* Controls Bar: Undo + Exact Catalog ToyNodeButton Palette */}
           <View style={styles.controlsBar}>
             {/* Undo Button */}
             <Pressable
@@ -332,27 +412,17 @@ export default function CareerSwipeDeck({
               <Ionicons name="arrow-undo" size={22} color={history.length > 0 ? "#f59e0b" : "#cbd5e1"} />
             </Pressable>
 
-            {/* Pass / Skip (Left) Button */}
-            <Pressable onPress={swipeLeft} style={[styles.controlBtn, styles.passBtn]}>
-              <Ionicons name="close" size={28} color="#ef4444" />
-            </Pressable>
-
-            {/* ToyNodeButton Compass for Setting Goal */}
+            {/* ToyNodeButton Compass for Setting Goal (Exact catalog color palette: #55C5B1 / #107c8f) */}
             <View style={styles.goalBtnWrapper}>
               <ToyNodeButton
                 size={54}
-                topColor={isGoal ? colors.button : "#e0f2fe"}
-                sideColor={isGoal ? "#107c8f" : "#bae6fd"}
+                topColor={isGoal ? "#55C5B1" : "#107c8f"}
+                sideColor={isGoal ? "#389e8d" : "#0b5360"}
                 iconName={isGoal ? "compass" : "compass-outline"}
                 iconSize={26}
                 onPress={() => onSetGoal(currentCareer.id, currentCareer.title)}
               />
             </View>
-
-            {/* Save / Like (Right) Button */}
-            <Pressable onPress={swipeRight} style={[styles.controlBtn, styles.likeControlBtn]}>
-              <Ionicons name={isSaved ? "heart" : "heart-outline"} size={26} color="#10b981" />
-            </Pressable>
           </View>
         </Animated.View>
       </View>
@@ -389,9 +459,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   nextCard: {
-    top: 12,
-    opacity: 0.85,
+    top: 0,
     borderColor: "#cbd5e1",
+  },
+  thirdCard: {
+    top: 0,
+    borderColor: "#e2e8f0",
+    opacity: 0.7,
   },
   cardHeaderRow: {
     flexDirection: "row",
@@ -535,7 +609,8 @@ const styles = StyleSheet.create({
   controlsBar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-around",
+    justifyContent: "center",
+    gap: 28,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#f1f5f9",
@@ -558,14 +633,6 @@ const styles = StyleSheet.create({
   undoBtn: {
     backgroundColor: "#fffbeb",
     borderColor: "#fef3c7",
-  },
-  passBtn: {
-    backgroundColor: "#fef2f2",
-    borderColor: "#fee2e2",
-  },
-  likeControlBtn: {
-    backgroundColor: "#ecfdf5",
-    borderColor: "#d1fae5",
   },
   goalBtnWrapper: {
     alignItems: "center",
