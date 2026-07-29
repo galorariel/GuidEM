@@ -11,9 +11,11 @@ import { resetLearningPath, getGuideUnits } from "../../services/guide";
 import { getProfile } from "../../services/supabase";
 import { getLinkedParents, unlinkParent } from "../../services/parents";
 import { generateStudentResumePdf } from "../../services/resume";
+import { useTutorial } from "../../hooks/TutorialContext";
 
 export default function Profile() {
   const { user, signOut } = useAuth();
+  const { showTutorial } = useTutorial();
   
   const [role, setRole] = useState<string | null>(null);
   const [linkCode, setLinkCode] = useState<string | null>(null);
@@ -21,6 +23,12 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [downloadingResume, setDownloadingResume] = useState(false);
+
+  React.useEffect(() => {
+    if (!loading && role === "student") {
+      showTutorial("profile");
+    }
+  }, [loading, role]);
 
   const handleDownloadResume = async () => {
     if (!user) return;

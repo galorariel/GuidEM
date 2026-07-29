@@ -10,6 +10,7 @@ import { useAuth } from "../../hooks/AuthContext";
 import { searchActivities, searchCareers, type Activity, type Career } from "../../services/catalog";
 import { addSaved, getProfile, getSavedActivityIds, getSavedIds, removeSaved, setCareerGoal } from "../../services/supabase";
 import { authErrorMessage } from "../../services/authErrors";
+import { useTutorial } from "../../hooks/TutorialContext";
 
 type Mode = "careers" | "activities";
 const CATEGORIES = ["Volunteering", "Extracurricular", "Professional Meetings", "Workshop", "Job Shadowing", "Internship", "University Visit"];
@@ -20,6 +21,7 @@ function priceLabel(a: Activity) {
 
 export default function Search() {
   const { user } = useAuth();
+  const { showTutorial } = useTutorial();
   const [mode, setMode] = useState<Mode>("careers");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -31,6 +33,10 @@ export default function Search() {
   const [savedCareerIds, setSavedCareerIds] = useState<string[]>([]);
   const [goalCareerId, setGoalCareerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    showTutorial("browse");
+  }, []);
 
   // Refresh saved/goal state on focus (not just mount) so the ♥ and compass
   // reflect changes made on other tabs (e.g. clearing/setting the goal).

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, Pressable, View } from 'react-native';
 import { colors, fonts } from '../constants/theme';
 import * as Haptics from 'expo-haptics';
 
@@ -17,20 +17,21 @@ const RatingScale: React.FC<RatingScaleProps> = ({ label, selectedValue, onValue
       <View style={styles.ratingContainer}>
         {[1, 2, 3, 4, 5].map((value) => (
           <View key={value} style={styles.ratingButtonWrapper}>
-            <TouchableOpacity
-              style={[styles.ratingButton, selectedValue === value && styles.selectedRatingButton]}
-              onPressIn={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-              }}
-              onPressOut={() => {
+            <Pressable
+              style={({ pressed }) => [
+                styles.ratingButton,
+                selectedValue === value && styles.selectedRatingButton,
+                pressed && { opacity: 0.85 }
+              ]}
+              onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                onValueChange(value);
               }}
-              onPress={() => onValueChange(value)}
             >
               <Text style={[styles.ratingText, selectedValue === value && styles.selectedRatingText]}>
                 {value}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
             {value === 1 && <Text style={styles.subLabel}>Like less</Text>}
             {value === 5 && <Text style={styles.subLabel}>Love</Text>}
           </View>

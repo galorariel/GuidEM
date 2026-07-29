@@ -17,6 +17,7 @@ import {
 } from "../services/catalog";
 import { addSaved, getProfile, getSavedIds, removeSaved, setCareerGoal } from "../services/supabase";
 import { authErrorMessage } from "../services/authErrors";
+import { useTutorial } from "../hooks/TutorialContext";
 
 function priceLabel(a: Activity) {
   return a.priceAmount === 0 ? "Free" : `${a.priceCurrency}${a.priceAmount}`;
@@ -25,6 +26,7 @@ function priceLabel(a: Activity) {
 export default function CareerDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
+  const { showTutorial } = useTutorial();
   const [career, setCareer] = useState<Career | null>(null);
   const [related, setRelated] = useState<Activity[]>([]);
   const [subCareers, setSubCareers] = useState<Career[]>([]);
@@ -33,7 +35,14 @@ export default function CareerDetail() {
   // Track saved career IDs and the active goal career ID
   const [savedCareerIds, setSavedCareerIds] = useState<string[]>([]);
   const [goalCareerId, setGoalCareerId] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!loading && career && role === "student") {
+      showTutorial("career_detail");
+    }
+  }, [loading, career, role]);
 
   useEffect(() => {
     let isMounted = true;
@@ -56,6 +65,8 @@ export default function CareerDetail() {
         setAncestors(ancRes);
         setSavedCareerIds(savedIdsRes);
         setGoalCareerId(profileRes?.career ?? null);
+        const userRole = (profileRes?.role && profileRes.role.trim() !== '') ? profileRes.role.toLowerCase() : "student";
+        setRole(userRole);
       }
       setLoading(false);
     })();

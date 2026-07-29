@@ -7,22 +7,36 @@ import ToyNodeButton from "../components/guide/ToyNodeButton";
 import { colors, fonts } from "../constants/theme";
 import { useAuth } from "../hooks/AuthContext";
 import { getActivity, type Activity } from "../services/catalog";
-import { addSaved, getSavedActivityIds, removeSaved } from "../services/supabase";
+import { addSaved, getProfile, getSavedActivityIds, removeSaved } from "../services/supabase";
+import { useTutorial } from "../hooks/TutorialContext";
 
 export default function Detail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
+  const { showTutorial } = useTutorial();
   const [activity, setActivity] = useState<Activity | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!loading && activity && role === "student") {
+      showTutorial("activity_detail");
+    }
+  }, [loading, activity, role]);
 
   useEffect(() => {
     (async () => {
       const a = await getActivity(String(id));
       setActivity(a);
       if (user && a) {
-        const ids = await getSavedActivityIds(user.id);
+        const [ids, p] = await Promise.all([
+          getSavedActivityIds(user.id),
+          getProfile(user.id),
+        ]);
         setIsSaved(ids.includes(a.id));
+        const userRole = (p?.role && p.role.trim() !== '') ? p.role.toLowerCase() : "student";
+        setRole(userRole);
       }
       setLoading(false);
     })();

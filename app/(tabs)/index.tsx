@@ -42,6 +42,7 @@ import {
   type LinkedChild,
   type ProgressSummary,
 } from "../../services/parents";
+import { useTutorial } from "../../hooks/TutorialContext";
 
 const QUEST_CHARS = "QUESTIONNAIRE • QUESTIONNAIRE • ".split("");
 const BROWSE_CHARS = "BROWSE • BROWSE • BROWSE • ".split("");
@@ -223,6 +224,7 @@ function AnimatedGoalTitle({ title }: { title: string }) {
 
 export default function Guide() {
   const { user } = useAuth();
+  const { showTutorial } = useTutorial();
   
   // Role & Shared loading states
   const [role, setRole] = useState<string | null>(null);
@@ -242,6 +244,24 @@ export default function Guide() {
   const [choiceGenerating, setChoiceGenerating] = useState(false);
   const [journeyPaused, setJourneyPaused] = useState(false);
   const [downloadingResume, setDownloadingResume] = useState(false);
+
+  useEffect(() => {
+    if (loading || role !== "student") return;
+
+    if (!goalTitle) {
+      showTutorial("welcome");
+    } else if (units.length > 0) {
+      const activeUnit = units.find((u) => u.status === "active");
+      const choiceUnlocked = activeUnit && activeUnit.steps.every((s) => s.completedAt != null);
+      const hasActiveChoice = activeUnit && activeUnit.choice && !activeUnit.choice.selectedOptionId && choiceUnlocked;
+
+      if (hasActiveChoice) {
+        showTutorial("guide_choice");
+      } else {
+        showTutorial("guide_path");
+      }
+    }
+  }, [loading, role, goalTitle, units]);
 
   const handleDownloadResume = async () => {
     if (!user) return;

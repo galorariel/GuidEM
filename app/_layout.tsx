@@ -8,6 +8,8 @@ import { colors } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
 import AnimatedGradientBackground from '../components/AnimatedGradientBackground';
+import { TutorialProvider } from '../hooks/TutorialContext';
+import TutorialOverlay from '../components/TutorialOverlay';
 
 function RootLayoutNav() {
   const { user, isLoading } = useAuth();
@@ -84,9 +86,12 @@ export default function RootLayout(){
 
   return (
     <AuthProvider>
-      <AnimatedGradientBackground>
-        <RootLayoutNav />
-      </AnimatedGradientBackground>
+      <TutorialProvider>
+        <AnimatedGradientBackground>
+          <RootLayoutNav />
+          <TutorialOverlay />
+        </AnimatedGradientBackground>
+      </TutorialProvider>
     </AuthProvider>
   );
 }

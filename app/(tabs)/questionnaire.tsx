@@ -10,6 +10,7 @@ import { useAuth } from "../../hooks/AuthContext";
 import { authErrorMessage } from "../../services/authErrors";
 import { recommendCareers, type Career } from "../../services/catalog";
 import { addSaved, getProfile, getSavedIds, removeSaved, setCareerGoal, upsertProfile, type PersonalityType } from "../../services/supabase";
+import { useTutorial } from "../../hooks/TutorialContext";
 
 import ToyNodeButton from "../../components/guide/ToyNodeButton";
 
@@ -221,6 +222,7 @@ function AnimatedTypeWord({ text }: { text: string }) {
 
 export default function QuestionnaireTab() {
   const { user } = useAuth();
+  const { showTutorial } = useTutorial();
   const [mode, setMode] = useState<Mode>("loading");
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>(new Array(questions.length).fill(0)); // Initialize with 0 for no selection
   const [saving, setSaving] = useState(false);
@@ -230,9 +232,22 @@ export default function QuestionnaireTab() {
   const [savedCareerIds, setSavedCareerIds] = useState<string[]>([]);
   const [goalCareerId, setGoalCareerId] = useState<string | null>(null);
 
+  const [role, setRole] = useState<string | null>(null);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const { width } = Dimensions.get("window");
+
+  useEffect(() => {
+    if (user && role === "student" && mode === "quiz") {
+      showTutorial("quiz_start");
+    }
+  }, [mode, user, role]);
+
+  useEffect(() => {
+    if (user && role === "student" && mode === "results" && recommendations.length > 0) {
+      showTutorial("recs_ready");
+    }
+  }, [mode, recommendations, user, role]);
 
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -242,10 +257,12 @@ export default function QuestionnaireTab() {
   // only changes from a submit here, so we deliberately do NOT refresh on focus
   // (that would clobber an in-progress "Retake").
   const load = useCallback(async () => {
-    if (!user) { setSavedCareerIds([]); setMode("quiz"); setCurrentCardIndex(0); return; }
+    if (!user) { setSavedCareerIds([]); setMode("quiz"); setRole(null); setCurrentCardIndex(0); return; }
     setSavedCareerIds(await getSavedIds(user.id, "career"));
     const profile = await getProfile(user.id);
     setGoalCareerId(profile?.career ?? null);
+    const userRole = (profile?.role && profile.role.trim() !== '') ? profile.role.toLowerCase() : "student";
+    setRole(userRole);
     if (profile?.personality_type) {
       setResultPrimary(cap(profile.personality_type));
       setResultSecondary(null);
