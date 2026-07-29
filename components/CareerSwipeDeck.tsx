@@ -73,17 +73,23 @@ export default function CareerSwipeDeck({
   const [deck, setDeck] = useState<Career[]>(careers);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
+  // Ref map to store individual Animated.ValueXY for each card ID to eliminate pop-in glitches
+  const pansRef = useRef<Record<string, Animated.ValueXY>>({});
+  const getPanForCard = (id: string) => {
+    if (!pansRef.current[id]) {
+      pansRef.current[id] = new Animated.ValueXY();
+    }
+    return pansRef.current[id];
+  };
+
   const careersKey = careers.map((c) => c.id).join(",");
 
   // Reset index when careers list changes completely (e.g. search query changes)
   useEffect(() => {
     setDeck(careers);
     setHistory([]);
-    pan.setValue({ x: 0, y: 0 });
+    pansRef.current = {};
   }, [careersKey]);
-
-  // Active top card position
-  const pan = useRef(new Animated.ValueXY()).current;
 
   // Subtle Idle Floating animation for active top card
   const idleAnim = useRef(new Animated.Value(0)).current;
@@ -115,6 +121,9 @@ export default function CareerSwipeDeck({
   const thirdCareer = deck[2];
   const isGoal = currentCareer && goalCareerId === currentCareer.id;
 
+  // Active top card position
+  const activePan = currentCareer ? getPanForCard(currentCareer.id) : new Animated.ValueXY();
+
   // PanResponder gesture setup for active top card
   const panResponder = useRef(
     PanResponder.create({
@@ -123,9 +132,9 @@ export default function CareerSwipeDeck({
       onPanResponderGrant: () => {
         idleLoopRef.current?.stop();
       },
-      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-        useNativeDriver: false,
-      }),
+      onPanResponderMove: (e, gestureState) => {
+        activePan.setValue({ x: gestureState.dx, y: gestureState.dy });
+      },
       onPanResponderRelease: (_, gestureState) => {
         idleLoopRef.current?.start();
 
@@ -141,7 +150,7 @@ export default function CareerSwipeDeck({
   ).current;
 
   const resetPosition = () => {
-    Animated.spring(pan, {
+    Animated.spring(activePan, {
       toValue: { x: 0, y: 0 },
       friction: 6,
       useNativeDriver: false,
@@ -153,7 +162,7 @@ export default function CareerSwipeDeck({
 
     const targetX = direction === "right" ? SCREEN_WIDTH * 1.4 : -SCREEN_WIDTH * 1.4;
 
-    Animated.timing(pan, {
+    Animated.timing(activePan, {
       toValue: { x: targetX, y: 0 },
       duration: 220,
       useNativeDriver: false,
@@ -173,9 +182,8 @@ export default function CareerSwipeDeck({
         { career: currentCareer, wasSaved: newlySaved, direction },
       ]);
 
-      // Remove top card from deck state, then reset pan coordinates for the next card
+      // Remove top card from deck state
       setDeck((prev) => prev.slice(1));
-      pan.setValue({ x: 0, y: 0 });
     });
   };
 
@@ -192,15 +200,16 @@ export default function CareerSwipeDeck({
     // Pop history item
     setHistory((prev) => prev.slice(0, -1));
 
-    // Pre-position top card off-screen on the side it left from (right or left)
+    // Get the dedicated pan value for the returning card and position it off-screen
+    const returningPan = getPanForCard(lastItem.career.id);
     const initialOffscreenX = lastItem.direction === "right" ? SCREEN_WIDTH * 1.3 : -SCREEN_WIDTH * 1.3;
-    pan.setValue({ x: initialOffscreenX, y: 0 });
+    returningPan.setValue({ x: initialOffscreenX, y: 0 });
 
-    // Prepend career back to top of deck
+    // Prepend career back to top of deck state
     setDeck((prev) => [lastItem.career, ...prev]);
 
-    // Animate top card sliding BACK IN smoothly to center
-    Animated.spring(pan, {
+    // Animate returning card sliding back to center
+    Animated.spring(returningPan, {
       toValue: { x: 0, y: 0 },
       friction: 7,
       tension: 40,
@@ -211,11 +220,11 @@ export default function CareerSwipeDeck({
   const handleRestart = () => {
     setDeck(careers);
     setHistory([]);
-    pan.setValue({ x: 0, y: 0 });
+    pansRef.current = {};
   };
 
-  // Top Active Card Rotations & Badges
-  const rotate = pan.x.interpolate({
+  // Top Active Card Rotations & Badges based on its dedicated activePan value
+  const rotate = activePan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: ["-12deg", "0deg", "12deg"],
     extrapolate: "clamp",
@@ -226,50 +235,50 @@ export default function CareerSwipeDeck({
     outputRange: [0, -6],
   });
 
-  const likeOpacity = pan.x.interpolate({
+  const likeOpacity = activePan.x.interpolate({
     inputRange: [10, SCREEN_WIDTH / 4],
     outputRange: [0, 1],
     extrapolate: "clamp",
   });
 
-  const nopeOpacity = pan.x.interpolate({
+  const nopeOpacity = activePan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 4, -10],
     outputRange: [1, 0],
     extrapolate: "clamp",
   });
 
-  // Physical Card Stack Depth Mechanics (Cards 2 & 3 peek out with distinct rotation angles & offsets)
-  const card2Rotate = pan.x.interpolate({
+  // Stack Depth Physical Card Pile Mechanics (Cards 2 & 3 peek out with distinct rotation angles & offsets)
+  const card2Rotate = activePan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: ["0deg", "-3deg", "0deg"],
     extrapolate: "clamp",
   });
 
-  const card2Scale = pan.x.interpolate({
+  const card2Scale = activePan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: [1, 0.95, 1],
     extrapolate: "clamp",
   });
 
-  const card2TranslateY = pan.x.interpolate({
+  const card2TranslateY = activePan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: [-14, 0, -14],
     extrapolate: "clamp",
   });
 
-  const card3Rotate = pan.x.interpolate({
+  const card3Rotate = activePan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: ["-3deg", "3.5deg", "-3deg"],
     extrapolate: "clamp",
   });
 
-  const card3Scale = pan.x.interpolate({
+  const card3Scale = activePan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: [0.95, 0.90, 0.95],
     extrapolate: "clamp",
   });
 
-  const card3TranslateY = pan.x.interpolate({
+  const card3TranslateY = activePan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: [-14, 0, -14],
     extrapolate: "clamp",
@@ -417,7 +426,7 @@ export default function CareerSwipeDeck({
           </Animated.View>
         )}
 
-        {/* Active Card 1 (Top Active Card with Gesture Physics & Idle Float) */}
+        {/* Active Card 1 (Top Active Card with Gesture Physics & Idle Float, Keyed by currentCareer.id) */}
         <Animated.View
           key={`card1_${currentCareer.id}`}
           {...panResponder.panHandlers}
@@ -426,8 +435,8 @@ export default function CareerSwipeDeck({
             styles.topCard,
             {
               transform: [
-                { translateX: pan.x },
-                { translateY: Animated.add(pan.y, idleOffsetY) },
+                { translateX: activePan.x },
+                { translateY: Animated.add(activePan.y, idleOffsetY) },
                 { rotate },
               ],
             },

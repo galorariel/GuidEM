@@ -210,52 +210,66 @@ export default function Search() {
         </Pressable>
       </Modal>
 
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 20 }} color={colors.accent} />
-      ) : mode === "careers" ? (
+      {mode === "careers" ? (
         viewType === "swipe" ? (
-          <CareerSwipeDeck
-            careers={careers}
-            savedCareerIds={savedCareerIds}
-            goalCareerId={goalCareerId}
-            userPersonalityType={personalityType}
-            onToggleSave={toggleSaveCareer}
-            onSetGoal={setGoalCareer}
-            onPressCareer={(id) => router.push(`/career?id=${id}` as any)}
-          />
-        ) : (
-          <FlatList
-            data={careers}
-            keyExtractor={(c) => c.id}
-            renderItem={({ item }) => (
-              <CareerCard
-                item={item}
-                isSaved={savedCareerIds.includes(item.id)}
-                onToggleSave={user ? () => toggleSaveCareer(item.id) : undefined}
-                isGoal={goalCareerId === item.id}
-                onSetGoal={user ? () => setGoalCareer(item.id, item.title) : undefined}
-                onPress={() => router.push(`/career?id=${item.id}` as any)}
+          <View style={{ flex: 1 }}>
+            <CareerSwipeDeck
+              careers={careers}
+              savedCareerIds={savedCareerIds}
+              goalCareerId={goalCareerId}
+              userPersonalityType={personalityType}
+              onToggleSave={toggleSaveCareer}
+              onSetGoal={setGoalCareer}
+              onPressCareer={(id) => router.push(`/career?id=${id}` as any)}
+            />
+            {loading && (
+              <ActivityIndicator
+                style={{ position: "absolute", top: 12, right: 12, zIndex: 10 }}
+                color={colors.accent}
               />
             )}
-            ListEmptyComponent={<Text style={styles.empty}>No careers found.</Text>}
+          </View>
+        ) : (
+          loading ? (
+            <ActivityIndicator style={{ marginTop: 20 }} color={colors.accent} />
+          ) : (
+            <FlatList
+              data={careers}
+              keyExtractor={(c) => c.id}
+              renderItem={({ item }) => (
+                <CareerCard
+                  item={item}
+                  isSaved={savedCareerIds.includes(item.id)}
+                  onToggleSave={user ? () => toggleSaveCareer(item.id) : undefined}
+                  isGoal={goalCareerId === item.id}
+                  onSetGoal={user ? () => setGoalCareer(item.id, item.title) : undefined}
+                  onPress={() => router.push(`/career?id=${item.id}` as any)}
+                />
+              )}
+              ListEmptyComponent={<Text style={styles.empty}>No careers found.</Text>}
+              contentContainerStyle={{ paddingBottom: 40 }}
+            />
+          )
+        )
+      ) : (
+        loading ? (
+          <ActivityIndicator style={{ marginTop: 20 }} color={colors.accent} />
+        ) : (
+          <FlatList
+            data={activities}
+            keyExtractor={(a) => a.id}
+            renderItem={({ item }) => (
+              <ActivityCard
+                item={{ id: item.id, title: item.title, category: item.category, location: item.location, priceLabel: priceLabel(item) }}
+                isSaved={savedIds.includes(item.id)}
+                onToggleSave={user ? () => toggleSave(item.id) : undefined}
+                onPress={() => router.push(`/detail?id=${item.id}` as any)}
+              />
+            )}
+            ListEmptyComponent={<Text style={styles.empty}>No activities found.</Text>}
             contentContainerStyle={{ paddingBottom: 40 }}
           />
         )
-      ) : (
-        <FlatList
-          data={activities}
-          keyExtractor={(a) => a.id}
-          renderItem={({ item }) => (
-            <ActivityCard
-              item={{ id: item.id, title: item.title, category: item.category, location: item.location, priceLabel: priceLabel(item) }}
-              isSaved={savedIds.includes(item.id)}
-              onToggleSave={user ? () => toggleSave(item.id) : undefined}
-              onPress={() => router.push(`/detail?id=${item.id}` as any)}
-            />
-          )}
-          ListEmptyComponent={<Text style={styles.empty}>No activities found.</Text>}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        />
       )}
     </View>
   );
