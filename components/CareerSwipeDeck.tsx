@@ -73,11 +73,14 @@ export default function CareerSwipeDeck({
   const [deck, setDeck] = useState<Career[]>(careers);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // Sync deck when careers list prop changes significantly
+  const careersKey = careers.map((c) => c.id).join(",");
+
+  // Reset index when careers list changes completely (e.g. search query changes)
   useEffect(() => {
     setDeck(careers);
     setHistory([]);
-  }, [careers]);
+    pan.setValue({ x: 0, y: 0 });
+  }, [careersKey]);
 
   // Active top card position
   const pan = useRef(new Animated.ValueXY()).current;
