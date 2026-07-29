@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useRef, useState, useEffect } from "react";
 import {
@@ -151,6 +152,13 @@ export default function CareerSwipeDeck({
     const targetPan = activePanRef.current;
     if (!targetCareer) return;
 
+    // Trigger directional haptic feedback
+    if (direction === "right") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    }
+
     const targetX = direction === "right" ? SCREEN_WIDTH * 1.4 : -SCREEN_WIDTH * 1.4;
 
     Animated.timing(targetPan, {
@@ -206,6 +214,9 @@ export default function CareerSwipeDeck({
   const handleUndo = () => {
     if (history.length === 0) return;
 
+    // Trigger heavy undo tactile haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+
     const lastItem = history[history.length - 1];
 
     // If it was saved during swipe right, revert the save
@@ -234,6 +245,7 @@ export default function CareerSwipeDeck({
   };
 
   const handleRestart = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setDeck(careers);
     setHistory([]);
     pansRef.current = {};
@@ -315,86 +327,123 @@ export default function CareerSwipeDeck({
     );
   }
 
-  // Preloaded Card Inner Content Renderer
+  // Preloaded Card Inner Content Renderer (Includes preloaded controlsBar for zero button pop-in!)
   const renderCardInnerContent = (careerItem: Career, isTopCard: boolean) => {
     const itemMatch = getMatchScore(userPersonalityType, careerItem.hollandCodes);
+    const itemIsGoal = goalCareerId === careerItem.id;
+
     return (
-      <Pressable
-        style={{ flex: 1 }}
-        onPress={() => isTopCard && onPressCareer(careerItem.id)}
-        pointerEvents={isTopCard ? "auto" : "none"}
-      >
-        {/* Card Header */}
-        <View style={styles.cardHeaderRow}>
-          <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={styles.cardTitle}>{careerItem.title}</Text>
-            {careerItem.demandLevel ? (
-              <View style={styles.demandBadge}>
-                <Ionicons name="trending-up" size={13} color={colors.accent} />
-                <Text style={styles.demandText}>{careerItem.demandLevel}</Text>
+      <View style={{ flex: 1, justifyContent: "space-between" }}>
+        <Pressable
+          style={{ flex: 1 }}
+          onPress={() => isTopCard && onPressCareer(careerItem.id)}
+          pointerEvents={isTopCard ? "auto" : "none"}
+        >
+          {/* Card Header */}
+          <View style={styles.cardHeaderRow}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.cardTitle}>{careerItem.title}</Text>
+              {careerItem.demandLevel ? (
+                <View style={styles.demandBadge}>
+                  <Ionicons name="trending-up" size={13} color={colors.accent} />
+                  <Text style={styles.demandText}>{careerItem.demandLevel}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Match Score Badge */}
+            {itemMatch !== null ? (
+              <View style={styles.matchScoreBadge}>
+                <Text style={styles.matchScoreVal}>{itemMatch}%</Text>
+                <Text style={styles.matchScoreLabel}>{t("swipe_match_score")}</Text>
+              </View>
+            ) : (
+              <Pressable
+                style={styles.quizPromptBadge}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  router.push("/(tabs)/questionnaire");
+                }}
+              >
+                <Ionicons name="sparkles" size={14} color={colors.accent} />
+                <Text style={styles.quizPromptText}>{t("swipe_take_quiz")}</Text>
+              </Pressable>
+            )}
+          </View>
+
+          {/* Description */}
+          <Text style={styles.cardDescription} numberOfLines={4}>
+            {careerItem.description}
+          </Text>
+
+          {/* Career Stats Grid */}
+          <View style={styles.statsGrid}>
+            {careerItem.salaryMin && careerItem.salaryMax ? (
+              <View style={styles.statBox}>
+                <Ionicons name="cash-outline" size={16} color={colors.accent} />
+                <Text style={styles.statValue}>
+                  {careerItem.salaryCurrency}{careerItem.salaryMin.toLocaleString()} - {careerItem.salaryCurrency}{careerItem.salaryMax.toLocaleString()}
+                </Text>
+                <Text style={styles.statLabel}>Salary</Text>
+              </View>
+            ) : null}
+
+            {careerItem.workEnvironment ? (
+              <View style={styles.statBox}>
+                <Ionicons name="business-outline" size={16} color={colors.accent} />
+                <Text style={styles.statValue} numberOfLines={1}>
+                  {careerItem.workEnvironment}
+                </Text>
+                <Text style={styles.statLabel}>Environment</Text>
               </View>
             ) : null}
           </View>
 
-          {/* Match Score Badge */}
-          {itemMatch !== null ? (
-            <View style={styles.matchScoreBadge}>
-              <Text style={styles.matchScoreVal}>{itemMatch}%</Text>
-              <Text style={styles.matchScoreLabel}>{t("swipe_match_score")}</Text>
+          {/* Tags / Subjects */}
+          {careerItem.recommendedSubjects && careerItem.recommendedSubjects.length > 0 && (
+            <View style={styles.tagsRow}>
+              {careerItem.recommendedSubjects.slice(0, 3).map((sub, idx) => (
+                <View key={idx} style={styles.tagChip}>
+                  <Text style={styles.tagChipText}>🎓 {sub}</Text>
+                </View>
+              ))}
             </View>
-          ) : (
-            <Pressable
-              style={styles.quizPromptBadge}
-              onPress={(e) => {
-                e.stopPropagation();
-                router.push("/(tabs)/questionnaire");
-              }}
-            >
-              <Ionicons name="sparkles" size={14} color={colors.accent} />
-              <Text style={styles.quizPromptText}>{t("swipe_take_quiz")}</Text>
-            </Pressable>
           )}
-        </View>
+        </Pressable>
 
-        {/* Description */}
-        <Text style={styles.cardDescription} numberOfLines={4}>
-          {careerItem.description}
-        </Text>
-
-        {/* Career Stats Grid */}
-        <View style={styles.statsGrid}>
-          {careerItem.salaryMin && careerItem.salaryMax ? (
-            <View style={styles.statBox}>
-              <Ionicons name="cash-outline" size={16} color={colors.accent} />
-              <Text style={styles.statValue}>
-                {careerItem.salaryCurrency}{careerItem.salaryMin.toLocaleString()} - {careerItem.salaryCurrency}{careerItem.salaryMax.toLocaleString()}
-              </Text>
-              <Text style={styles.statLabel}>Salary</Text>
-            </View>
-          ) : null}
-
-          {careerItem.workEnvironment ? (
-            <View style={styles.statBox}>
-              <Ionicons name="business-outline" size={16} color={colors.accent} />
-              <Text style={styles.statValue} numberOfLines={1}>
-                {careerItem.workEnvironment}
-              </Text>
-              <Text style={styles.statLabel}>Environment</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Tags / Subjects */}
-        {careerItem.recommendedSubjects && careerItem.recommendedSubjects.length > 0 && (
-          <View style={styles.tagsRow}>
-            {careerItem.recommendedSubjects.slice(0, 3).map((sub, idx) => (
-              <View key={idx} style={styles.tagChip}>
-                <Text style={styles.tagChipText}>🎓 {sub}</Text>
-              </View>
-            ))}
+        {/* Fully Preloaded Controls Bar on ALL cards (eliminates 3D button pop-in!) */}
+        <View style={styles.controlsBar} pointerEvents={isTopCard ? "auto" : "none"}>
+          {/* 3D ToyNode Undo Button in Vibrant Yellow (#f59e0b / #d97706) */}
+          <View style={styles.btnWrapper}>
+            <ToyNodeButton
+              size={54}
+              topColor={history.length > 0 ? "#f59e0b" : "#e2e8f0"}
+              sideColor={history.length > 0 ? "#d97706" : "#cbd5e1"}
+              iconName="arrow-undo"
+              iconSize={24}
+              iconColor="#ffffff"
+              disabled={!isTopCard || history.length === 0}
+              onPress={handleUndo}
+            />
           </View>
-        )}
-      </Pressable>
+
+          {/* 3D ToyNode Compass Goal Button (Exact Catalog Palette: #55C5B1 / #107c8f) */}
+          <View style={styles.btnWrapper}>
+            <ToyNodeButton
+              size={54}
+              topColor={itemIsGoal ? "#55C5B1" : "#107c8f"}
+              sideColor={itemIsGoal ? "#389e8d" : "#0b5360"}
+              iconName={itemIsGoal ? "compass" : "compass-outline"}
+              iconSize={26}
+              disabled={!isTopCard}
+              onPress={() => {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                onSetGoal(careerItem.id, careerItem.title);
+              }}
+            />
+          </View>
+        </View>
+      </View>
     );
   };
 
@@ -472,35 +521,6 @@ export default function CareerSwipeDeck({
 
           {/* Full Card Content */}
           {renderCardInnerContent(currentCareer, true)}
-
-          {/* Controls Bar: Yellow 3D ToyNodeButton for Undo + Compass 3D ToyNodeButton for Goal */}
-          <View style={styles.controlsBar}>
-            {/* 3D ToyNode Undo Button in Vibrant Yellow (#f59e0b / #d97706) */}
-            <View style={styles.btnWrapper}>
-              <ToyNodeButton
-                size={54}
-                topColor={history.length > 0 ? "#f59e0b" : "#e2e8f0"}
-                sideColor={history.length > 0 ? "#d97706" : "#cbd5e1"}
-                iconName="arrow-undo"
-                iconSize={24}
-                iconColor="#ffffff"
-                disabled={history.length === 0}
-                onPress={handleUndo}
-              />
-            </View>
-
-            {/* 3D ToyNode Compass Goal Button (Exact Catalog Palette: #55C5B1 / #107c8f) */}
-            <View style={styles.btnWrapper}>
-              <ToyNodeButton
-                size={54}
-                topColor={isGoal ? "#55C5B1" : "#107c8f"}
-                sideColor={isGoal ? "#389e8d" : "#0b5360"}
-                iconName={isGoal ? "compass" : "compass-outline"}
-                iconSize={26}
-                onPress={() => onSetGoal(currentCareer.id, currentCareer.title)}
-              />
-            </View>
-          </View>
         </Animated.View>
       </View>
     </View>
@@ -517,7 +537,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 495,
     alignItems: "center",
-    justifyContent: "flex-start",
+    justify.content: "flex-start",
     paddingTop: 10,
   },
   card: {
