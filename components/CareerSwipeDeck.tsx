@@ -17,7 +17,7 @@ import { useLanguage } from "../hooks/LanguageContext";
 import { type Career } from "../services/catalog";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const SWIPE_THRESHOLD = 0.25 * SCREEN_WIDTH;
+const SWIPE_THRESHOLD = 0.22 * SCREEN_WIDTH;
 
 type Props = {
   careers: Career[];
@@ -100,6 +100,7 @@ export default function CareerSwipeDeck({
   useEffect(() => {
     setCurrentIndex(0);
     setHistory([]);
+    pan.setValue({ x: 0, y: 0 });
   }, [careers.length]);
 
   const currentCareer = careers[currentIndex];
@@ -113,14 +114,12 @@ export default function CareerSwipeDeck({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
-        // Pause idle float when dragging
         idleLoopRef.current?.stop();
       },
       onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
         useNativeDriver: false,
       }),
       onPanResponderRelease: (_, gestureState) => {
-        // Resume idle float
         idleLoopRef.current?.start();
 
         if (gestureState.dx > SWIPE_THRESHOLD) {
@@ -145,31 +144,30 @@ export default function CareerSwipeDeck({
   const swipeRight = () => {
     if (!currentCareer) return;
     Animated.timing(pan, {
-      toValue: { x: SCREEN_WIDTH + 100, y: 0 },
-      duration: 250,
+      toValue: { x: SCREEN_WIDTH + 150, y: 0 },
+      duration: 220,
       useNativeDriver: false,
     }).start(() => {
-      // Save item if not saved already
       const alreadySaved = savedCareerIds.includes(currentCareer.id);
       if (!alreadySaved) {
         onToggleSave(currentCareer.id);
       }
       setHistory((prev) => [...prev, { career: currentCareer, wasSaved: !alreadySaved }]);
-      pan.setValue({ x: 0, y: 0 });
       setCurrentIndex((prev) => prev + 1);
+      pan.setValue({ x: 0, y: 0 });
     });
   };
 
   const swipeLeft = () => {
     if (!currentCareer) return;
     Animated.timing(pan, {
-      toValue: { x: -SCREEN_WIDTH - 100, y: 0 },
-      duration: 250,
+      toValue: { x: -SCREEN_WIDTH - 150, y: 0 },
+      duration: 220,
       useNativeDriver: false,
     }).start(() => {
       setHistory((prev) => [...prev, { career: currentCareer, wasSaved: false }]);
-      pan.setValue({ x: 0, y: 0 });
       setCurrentIndex((prev) => prev + 1);
+      pan.setValue({ x: 0, y: 0 });
     });
   };
 
@@ -177,7 +175,6 @@ export default function CareerSwipeDeck({
     if (history.length === 0 || currentIndex === 0) return;
     const lastItem = history[history.length - 1];
     
-    // If we saved it on swipe right, revert the save
     if (lastItem.wasSaved && savedCareerIds.includes(lastItem.career.id)) {
       onToggleSave(lastItem.career.id);
     }
@@ -193,10 +190,10 @@ export default function CareerSwipeDeck({
     pan.setValue({ x: 0, y: 0 });
   };
 
-  // Interpolated card rotation, opacities, and idle float
+  // Active Card Interpolations
   const rotate = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: ["-10deg", "0deg", "10deg"],
+    outputRange: ["-12deg", "0deg", "12deg"],
     extrapolate: "clamp",
   });
 
@@ -217,28 +214,40 @@ export default function CareerSwipeDeck({
     extrapolate: "clamp",
   });
 
-  // Stack depth interpolations for Card 2 and Card 3
+  // Stack Depth Physical Card Pile Mechanics (Cards 2 & 3 peek out with distinct rotation & top offset)
+  const card2Rotate = pan.x.interpolate({
+    inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+    outputRange: ["0deg", "-2.5deg", "0deg"],
+    extrapolate: "clamp",
+  });
+
   const card2Scale = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: [1, 0.95, 1],
+    outputRange: [1, 0.96, 1],
     extrapolate: "clamp",
   });
 
   const card2TranslateY = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: [0, 12, 0],
+    outputRange: [-14, 0, -14],
+    extrapolate: "clamp",
+  });
+
+  const card3Rotate = pan.x.interpolate({
+    inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+    outputRange: ["-2.5deg", "2.5deg", "-2.5deg"],
     extrapolate: "clamp",
   });
 
   const card3Scale = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: [0.95, 0.90, 0.95],
+    outputRange: [0.96, 0.92, 0.96],
     extrapolate: "clamp",
   });
 
   const card3TranslateY = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: [12, 24, 12],
+    outputRange: [-14, 0, -14],
     extrapolate: "clamp",
   });
 
@@ -257,9 +266,7 @@ export default function CareerSwipeDeck({
     );
   }
 
-  const matchScore = getMatchScore(userPersonalityType, currentCareer.hollandCodes);
-
-  // Card Content Renderer (Used for full preloading across Card 1, Card 2, and Card 3)
+  // Preloaded Card Inner Content Component
   const renderCardInnerContent = (careerItem: Career, isTopCard: boolean) => {
     const itemMatch = getMatchScore(userPersonalityType, careerItem.hollandCodes);
     return (
@@ -344,39 +351,55 @@ export default function CareerSwipeDeck({
 
   return (
     <View style={styles.container}>
-      {/* Deck Container */}
+      {/* Outer Card Deck Container with Height Padding for Physical Stack */}
       <View style={styles.deckContainer}>
-        {/* Card 3 (Bottom Stack Depth) */}
+        {/* Card 3 (Bottom Card in Stack - Peeked right with +2.5deg angle and top offset) */}
         {thirdCareer && (
           <Animated.View
+            key={`card3_${thirdCareer.id}`}
             style={[
               styles.card,
               styles.thirdCard,
-              { transform: [{ scale: card3Scale }, { translateY: card3TranslateY }] },
+              {
+                transform: [
+                  { translateY: card3TranslateY },
+                  { scale: card3Scale },
+                  { rotate: card3Rotate },
+                ],
+              },
             ]}
           >
             {renderCardInnerContent(thirdCareer, false)}
           </Animated.View>
         )}
 
-        {/* Card 2 (Middle Stack Depth - Fully Preloaded) */}
+        {/* Card 2 (Middle Card in Stack - Peeked left with -2.5deg angle and top offset) */}
         {nextCareer && (
           <Animated.View
+            key={`card2_${nextCareer.id}`}
             style={[
               styles.card,
               styles.nextCard,
-              { transform: [{ scale: card2Scale }, { translateY: card2TranslateY }] },
+              {
+                transform: [
+                  { translateY: card2TranslateY },
+                  { scale: card2Scale },
+                  { rotate: card2Rotate },
+                ],
+              },
             ]}
           >
             {renderCardInnerContent(nextCareer, false)}
           </Animated.View>
         )}
 
-        {/* Active Card 1 (Top Active Card with Physics & Idle Float) */}
+        {/* Active Card 1 (Top Card with Physics, Keyed by currentCareer.id to eliminate pop-in glitch) */}
         <Animated.View
+          key={`card1_${currentCareer.id}`}
           {...panResponder.panHandlers}
           style={[
             styles.card,
+            styles.topCard,
             {
               transform: [
                 { translateX: pan.x },
@@ -438,9 +461,10 @@ const styles = StyleSheet.create({
   },
   deckContainer: {
     width: "100%",
-    height: 480,
+    height: 495,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
+    paddingTop: 10,
   },
   card: {
     position: "absolute",
@@ -453,19 +477,32 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
     shadowColor: "#0f172a",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
+    shadowOpacity: 0.09,
+    shadowRadius: 14,
     elevation: 6,
     justifyContent: "space-between",
   },
-  nextCard: {
+  topCard: {
     top: 0,
+    zIndex: 3,
+    backgroundColor: "#ffffff",
+    borderColor: "#e2e8f0",
+  },
+  nextCard: {
+    top: 14,
+    zIndex: 2,
+    backgroundColor: "#fcfdfe",
     borderColor: "#cbd5e1",
+    shadowOpacity: 0.05,
+    elevation: 4,
   },
   thirdCard: {
-    top: 0,
-    borderColor: "#e2e8f0",
-    opacity: 0.7,
+    top: 26,
+    zIndex: 1,
+    backgroundColor: "#f8fafc",
+    borderColor: "#cbd5e1",
+    shadowOpacity: 0.03,
+    elevation: 2,
   },
   cardHeaderRow: {
     flexDirection: "row",
