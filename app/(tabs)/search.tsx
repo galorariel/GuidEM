@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, FlatList, Modal, Pressable, StyleSheet, Text,
 import { Image } from "expo-image";
 import ActivityCard from "../../components/ActivityCard";
 import CareerCard from "../../components/CareerCard";
+import CareerSwipeDeck from "../../components/CareerSwipeDeck";
 import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
 import { searchActivities, searchCareers, type Activity, type Career } from "../../services/catalog";
@@ -15,6 +16,7 @@ import { useTutorial } from "../../hooks/TutorialContext";
 import { useLanguage } from "../../hooks/LanguageContext";
 
 type Mode = "careers" | "activities";
+type ViewType = "list" | "swipe";
 const CATEGORIES = ["Volunteering", "Extracurricular", "Professional Meetings", "Workshop", "Job Shadowing", "Internship", "University Visit"];
 
 function priceLabel(a: Activity) {
@@ -26,6 +28,7 @@ export default function Search() {
   const { showTutorial } = useTutorial();
   const { language, t } = useLanguage();
   const [mode, setMode] = useState<Mode>("careers");
+  const [viewType, setViewType] = useState<ViewType>("list");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [maxBudget, setMaxBudget] = useState("");
@@ -35,6 +38,7 @@ export default function Search() {
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [savedCareerIds, setSavedCareerIds] = useState<string[]>([]);
   const [goalCareerId, setGoalCareerId] = useState<string | null>(null);
+  const [personalityType, setPersonalityType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -45,7 +49,7 @@ export default function Search() {
   // reflect changes made on other tabs (e.g. clearing/setting the goal).
   useFocusEffect(
     useCallback(() => {
-      if (!user) { setSavedIds([]); setSavedCareerIds([]); setGoalCareerId(null); return; }
+      if (!user) { setSavedIds([]); setSavedCareerIds([]); setGoalCareerId(null); setPersonalityType(null); return; }
       Promise.all([
         getSavedActivityIds(user.id),
         getSavedIds(user.id, "career"),
@@ -54,6 +58,7 @@ export default function Search() {
         setSavedIds(actIds);
         setSavedCareerIds(carIds);
         setGoalCareerId(p?.career ?? null);
+        setPersonalityType(p?.personality_type ?? null);
       });
     }, [user])
   );
@@ -114,9 +119,34 @@ export default function Search() {
         />
       </View>
 
-      <View style={styles.segment}>
-        {(["careers", "activities"] as Mode[]).map((m) =>
-          chip(m === "careers" ? "Careers" : "Activities", mode === m, () => setMode(m))
+      <View style={styles.controlsRow}>
+        <View style={styles.segment}>
+          {(["careers", "activities"] as Mode[]).map((m) =>
+            chip(m === "careers" ? "Careers" : "Activities", mode === m, () => setMode(m))
+          )}
+        </View>
+
+        {mode === "careers" && (
+          <View style={styles.viewToggleContainer}>
+            <Pressable
+              onPress={() => setViewType("list")}
+              style={[styles.viewToggleBtn, viewType === "list" && styles.viewToggleBtnActive]}
+            >
+              <Ionicons name="list" size={15} color={viewType === "list" ? "#fff" : colors.heading} />
+              <Text style={[styles.viewToggleText, viewType === "list" && styles.viewToggleTextActive]}>
+                {t("swipe_mode_list")}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setViewType("swipe")}
+              style={[styles.viewToggleBtn, viewType === "swipe" && styles.viewToggleBtnActive]}
+            >
+              <Ionicons name="sparkles" size={15} color={viewType === "swipe" ? "#fff" : colors.heading} />
+              <Text style={[styles.viewToggleText, viewType === "swipe" && styles.viewToggleTextActive]}>
+                {t("swipe_mode_deck")}
+              </Text>
+            </Pressable>
+          </View>
         )}
       </View>
 
@@ -183,22 +213,34 @@ export default function Search() {
       {loading ? (
         <ActivityIndicator style={{ marginTop: 20 }} color={colors.accent} />
       ) : mode === "careers" ? (
-        <FlatList
-          data={careers}
-          keyExtractor={(c) => c.id}
-          renderItem={({ item }) => (
-            <CareerCard
-              item={item}
-              isSaved={savedCareerIds.includes(item.id)}
-              onToggleSave={user ? () => toggleSaveCareer(item.id) : undefined}
-              isGoal={goalCareerId === item.id}
-              onSetGoal={user ? () => setGoalCareer(item.id, item.title) : undefined}
-              onPress={() => router.push(`/career?id=${item.id}` as any)}
-            />
-          )}
-          ListEmptyComponent={<Text style={styles.empty}>No careers found.</Text>}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        />
+        viewType === "swipe" ? (
+          <CareerSwipeDeck
+            careers={careers}
+            savedCareerIds={savedCareerIds}
+            goalCareerId={goalCareerId}
+            userPersonalityType={personalityType}
+            onToggleSave={toggleSaveCareer}
+            onSetGoal={setGoalCareer}
+            onPressCareer={(id) => router.push(`/career?id=${id}` as any)}
+          />
+        ) : (
+          <FlatList
+            data={careers}
+            keyExtractor={(c) => c.id}
+            renderItem={({ item }) => (
+              <CareerCard
+                item={item}
+                isSaved={savedCareerIds.includes(item.id)}
+                onToggleSave={user ? () => toggleSaveCareer(item.id) : undefined}
+                isGoal={goalCareerId === item.id}
+                onSetGoal={user ? () => setGoalCareer(item.id, item.title) : undefined}
+                onPress={() => router.push(`/career?id=${item.id}` as any)}
+              />
+            )}
+            ListEmptyComponent={<Text style={styles.empty}>No careers found.</Text>}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          />
+        )
       ) : (
         <FlatList
           data={activities}
@@ -224,7 +266,13 @@ const styles = StyleSheet.create({
   topHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   headerLogo: { width: 80, height: 80 },
   h1: { fontSize: 28, fontFamily: fonts.heading, color: colors.heading },
-  segment: { flexDirection: "row", gap: 8, marginBottom: 12 },
+  controlsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  segment: { flexDirection: "row", gap: 8 },
+  viewToggleContainer: { flexDirection: "row", backgroundColor: "#e2e8f0", borderRadius: 16, padding: 2.5, gap: 2 },
+  viewToggleBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
+  viewToggleBtnActive: { backgroundColor: colors.accent },
+  viewToggleText: { fontSize: 12, fontFamily: fonts.bodyBold, color: colors.heading },
+  viewToggleTextActive: { color: "#ffffff" },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: fonts.body, color: colors.heading, backgroundColor: colors.card },
   activityFiltersRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
   dropdownBtn: { flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.card },
