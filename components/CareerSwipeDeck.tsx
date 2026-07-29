@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 495,
     alignItems: "center",
-    justify.content: "flex-start",
+    justifyContent: "flex-start",
     paddingTop: 10,
   },
   card: {
