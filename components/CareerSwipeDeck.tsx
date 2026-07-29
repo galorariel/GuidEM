@@ -124,6 +124,60 @@ export default function CareerSwipeDeck({
   // Active top card position
   const activePan = currentCareer ? getPanForCard(currentCareer.id) : new Animated.ValueXY();
 
+  // Fresh refs to eliminate PanResponder stale closures completely
+  const activePanRef = useRef(activePan);
+  activePanRef.current = activePan;
+
+  const currentCareerRef = useRef(currentCareer);
+  currentCareerRef.current = currentCareer;
+
+  const savedCareerIdsRef = useRef(savedCareerIds);
+  savedCareerIdsRef.current = savedCareerIds;
+
+  const onToggleSaveRef = useRef(onToggleSave);
+  onToggleSaveRef.current = onToggleSave;
+
+  const resetPosition = () => {
+    const targetPan = activePanRef.current;
+    Animated.spring(targetPan, {
+      toValue: { x: 0, y: 0 },
+      friction: 6,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const swipe = (direction: SwipeDirection) => {
+    const targetCareer = currentCareerRef.current;
+    const targetPan = activePanRef.current;
+    if (!targetCareer) return;
+
+    const targetX = direction === "right" ? SCREEN_WIDTH * 1.4 : -SCREEN_WIDTH * 1.4;
+
+    Animated.timing(targetPan, {
+      toValue: { x: targetX, y: 0 },
+      duration: 220,
+      useNativeDriver: false,
+    }).start(() => {
+      let newlySaved = false;
+
+      if (direction === "right") {
+        const alreadySaved = savedCareerIdsRef.current.includes(targetCareer.id);
+        if (!alreadySaved) {
+          onToggleSaveRef.current(targetCareer.id);
+          newlySaved = true;
+        }
+      }
+
+      setHistory((prev) => [
+        ...prev,
+        { career: targetCareer, wasSaved: newlySaved, direction },
+      ]);
+
+      // Remove top card from deck state
+      setDeck((prev) => prev.slice(1));
+    });
+  };
+
   // PanResponder gesture setup for active top card
   const panResponder = useRef(
     PanResponder.create({
@@ -133,7 +187,7 @@ export default function CareerSwipeDeck({
         idleLoopRef.current?.stop();
       },
       onPanResponderMove: (e, gestureState) => {
-        activePan.setValue({ x: gestureState.dx, y: gestureState.dy });
+        activePanRef.current.setValue({ x: gestureState.dx, y: gestureState.dy });
       },
       onPanResponderRelease: (_, gestureState) => {
         idleLoopRef.current?.start();
@@ -148,44 +202,6 @@ export default function CareerSwipeDeck({
       },
     })
   ).current;
-
-  const resetPosition = () => {
-    Animated.spring(activePan, {
-      toValue: { x: 0, y: 0 },
-      friction: 6,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const swipe = (direction: SwipeDirection) => {
-    if (!currentCareer) return;
-
-    const targetX = direction === "right" ? SCREEN_WIDTH * 1.4 : -SCREEN_WIDTH * 1.4;
-
-    Animated.timing(activePan, {
-      toValue: { x: targetX, y: 0 },
-      duration: 220,
-      useNativeDriver: false,
-    }).start(() => {
-      let newlySaved = false;
-
-      if (direction === "right") {
-        const alreadySaved = savedCareerIds.includes(currentCareer.id);
-        if (!alreadySaved) {
-          onToggleSave(currentCareer.id);
-          newlySaved = true;
-        }
-      }
-
-      setHistory((prev) => [
-        ...prev,
-        { career: currentCareer, wasSaved: newlySaved, direction },
-      ]);
-
-      // Remove top card from deck state
-      setDeck((prev) => prev.slice(1));
-    });
-  };
 
   const handleUndo = () => {
     if (history.length === 0) return;
