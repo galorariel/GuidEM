@@ -12,10 +12,12 @@ import { getProfile } from "../../services/supabase";
 import { getLinkedParents, unlinkParent } from "../../services/parents";
 import { generateStudentResumePdf } from "../../services/resume";
 import { useTutorial } from "../../hooks/TutorialContext";
+import { useLanguage } from "../../hooks/LanguageContext";
 
 export default function Profile() {
   const { user, signOut } = useAuth();
   const { showTutorial } = useTutorial();
+  const { t } = useLanguage();
   
   const [role, setRole] = useState<string | null>(null);
   const [linkCode, setLinkCode] = useState<string | null>(null);
@@ -53,18 +55,14 @@ export default function Profile() {
   };
 
   const loadProfileData = useCallback(async () => {
-    if (!user) return;
-    if (role === null) {
-      setLoading(true);
-    }
+    if (!user) { setLoading(false); return; }
     try {
-      const p = await getProfile(user.id);
-      const userRole = (p?.role && p.role.trim() !== '') ? p.role.toLowerCase() : "student";
+      const profile = await getProfile(user.id);
+      const userRole = (profile?.role && profile.role.trim() !== "") ? profile.role.toLowerCase() : "student";
       setRole(userRole);
-      
+      setLinkCode(profile?.link_code ?? null);
+
       if (userRole === "student") {
-        setLinkCode(p?.link_code || null);
-        setLoading(false);
         const parents = await getLinkedParents();
         setLinkedParents(parents);
       }
@@ -73,7 +71,7 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
-  }, [user, role]);
+  }, [user]);
 
   useFocusEffect(
     useCallback(() => {
@@ -83,7 +81,7 @@ export default function Profile() {
 
   if (!user) return null;
   const name = (user.user_metadata?.full_name as string) || "User";
-  const email = user.email || "-";
+  const email = user.email ?? "";
 
   const handleSignOut = async () => {
     try {
@@ -162,7 +160,7 @@ export default function Profile() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.topHeaderRow}>
-        <Text style={styles.h1}>Profile</Text>
+        <Text style={styles.h1}>{t("profile_title")}</Text>
         <Image
           source={require("../../assets/images/logo_final.png")}
           style={styles.headerLogo}
@@ -183,7 +181,7 @@ export default function Profile() {
             <Text style={styles.emailText}>{email}</Text>
             <View style={styles.roleBadge}>
               <Text style={styles.roleBadgeText}>
-                {role ? role.toUpperCase() : "STUDENT"}
+                {role ? (role === "student" ? t("role_student") : t("role_parent")) : "STUDENT"}
               </Text>
             </View>
           </View>
@@ -193,23 +191,23 @@ export default function Profile() {
       {/* Account Settings Menu (Student-Only) */}
       {isStudent && (
         <View style={styles.card}>
-          <Text style={styles.sectionHeading}>Settings</Text>
+          <Text style={styles.sectionHeading}>{t("personal_details")}</Text>
           <Pressable style={styles.menuItem} onPress={() => router.push("/personal-details")}>
             <Ionicons name="person-outline" size={20} color={colors.accent} />
-            <Text style={styles.menuText}>Personal Details</Text>
+            <Text style={styles.menuText}>{t("personal_details")}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} />
           </Pressable>
           
           <Pressable style={styles.menuItem} onPress={() => router.push("/saved")}>
             <Ionicons name="heart-outline" size={20} color={colors.accent} />
-            <Text style={styles.menuText}>Saved Careers & Activities</Text>
+            <Text style={styles.menuText}>{t("saved_items")}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} />
           </Pressable>
 
           <Pressable style={styles.menuItem} onPress={handleDownloadResume} disabled={downloadingResume}>
             <Ionicons name="document-text-outline" size={20} color={colors.accent} />
             <Text style={styles.menuText}>
-              {downloadingResume ? "Generating Resume PDF..." : "Download Resume (PDF)"}
+              {downloadingResume ? "Generating Resume PDF..." : t("resume_download_btn")}
             </Text>
             <Ionicons name="download-outline" size={16} color={colors.accent} />
           </Pressable>

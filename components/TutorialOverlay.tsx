@@ -13,8 +13,11 @@ import { colors, fonts } from "../constants/theme";
 import { useTutorial } from "../hooks/TutorialContext";
 import CustomButton from "./CustomButton";
 
+import { useLanguage } from "../hooks/LanguageContext";
+
 export default function TutorialOverlay() {
   const { activeTutorial, dismissActiveTutorial } = useTutorial();
+  const { t } = useLanguage();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
@@ -117,7 +120,7 @@ export default function TutorialOverlay() {
           {/* Actions */}
           <View style={styles.footer}>
             <Pressable style={styles.skipButton} onPress={handleDismiss}>
-              <Text style={styles.skipText}>Skip Tutorial</Text>
+              <Text style={styles.skipText}>{t("tutorial_skip")}</Text>
             </Pressable>
             
             <View style={styles.primaryBtnWrapper}>

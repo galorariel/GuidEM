@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,67 +17,77 @@ import CustomButton from "../components/CustomButton";
 import CustomInput from "../components/CustomInput";
 import GradeSelector from "../components/GradeSelector";
 import MajorsInput from "../components/MajorsInput";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useAuth } from "../hooks/AuthContext";
+import { useLanguage } from "../hooks/LanguageContext";
 import { authErrorMessage } from "../services/authErrors";
 import { colors, fonts } from "../constants/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { type Language } from "../constants/translations";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HERO_HEIGHT = 250;
 
 type UserRole = "student" | "parent";
 
+const LANG_OPTIONS: { code: Language; label: string }[] = [
+  { code: "en", label: "English" },
+  { code: "he", label: "עברית" },
+  { code: "ar", label: "العربية" },
+];
+
 export default function SignUp() {
-  const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("student");
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   
   // Student-only fields
   const [school, setSchool] = useState("");
   const [city, setCity] = useState("");
   const [grade, setGrade] = useState("");
   const [majors, setMajors] = useState<string[]>([]);
-  
+
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
+  const { language, changeLanguage, t } = useLanguage();
+
+  // Preferred language
+  const [preferredLang, setPreferredLang] = useState<Language>(language);
+
+  // Keep preferredLang in sync with LanguageContext
+  useEffect(() => {
+    setPreferredLang(language);
+  }, [language]);
+
+  const isStudent = role === "student";
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
       const name = username.trim() || (role === "parent" ? "Parent" : "Student");
-      
-      const metadata = role === "student" ? {
-        role: "student",
-        school: school.trim(),
-        city: city.trim(),
-        grade_level: grade,
-        majors,
-      } : {
-        role: "parent",
-      };
+      const metadata = isStudent
+        ? { role, school: school.trim(), city: city.trim(), grade_level: grade, majors, language: preferredLang }
+        : { role, language: preferredLang };
 
-      const { session } = await signUp(email, password, name, metadata);
-      
-      if (!session) {
-        Alert.alert(
-          "Confirm your email",
-          "We sent you a confirmation link. Please verify your email, then sign in."
-        );
+      const res = await signUp(email, password, name, metadata);
+
+      // Save the preferred language to profile + AsyncStorage
+      await changeLanguage(preferredLang);
+
+      if (res?.session) {
+        router.replace("/(tabs)");
+      } else {
+        Alert.alert("Confirm Email", "Please check your inbox and confirm your email address.");
         router.replace("/sign-in");
-        return;
       }
-
-      router.replace("/(tabs)");
     } catch (err: any) {
       console.warn("Sign up error:", err?.message ?? err);
-      Alert.alert("Sign up failed", authErrorMessage(err, "Check your input."));
+      Alert.alert("Sign Up Failed", authErrorMessage(err, "Could not create account."));
     } finally {
       setLoading(false);
     }
   };
-
-  const isStudent = role === "student";
 
   return (
     <KeyboardAvoidingView
@@ -112,48 +122,48 @@ export default function SignUp() {
 
         {/* Large Floating Content Card Overlapping Hero Image */}
         <View style={styles.floatingCard}>
-          <Text style={styles.h1}>Sign Up</Text>
-          <Text style={styles.subtitle}>Join GuidEM to discover your personalized career path</Text>
+          <Text style={styles.h1}>{t("sign_up_title")}</Text>
+          <Text style={styles.subtitle}>{t("sign_up_subtitle")}</Text>
 
           {/* Role Selection Segmented Control */}
-          <Text style={styles.selectorLabel}>I am a...</Text>
+          <Text style={styles.selectorLabel}>{t("role_label")}</Text>
           <View style={styles.segment}>
             <Pressable
               onPress={() => setRole("student")}
               style={[styles.chip, isStudent && styles.chipActive]}
             >
-              <Text style={[styles.chipText, isStudent && styles.chipTextActive]}>Student</Text>
+              <Text style={[styles.chipText, isStudent && styles.chipTextActive]}>{t("role_student")}</Text>
             </Pressable>
             <Pressable
               onPress={() => setRole("parent")}
               style={[styles.chip, !isStudent && styles.chipActive]}
             >
-              <Text style={[styles.chipText, !isStudent && styles.chipTextActive]}>Parent</Text>
+              <Text style={[styles.chipText, !isStudent && styles.chipTextActive]}>{t("role_parent")}</Text>
             </Pressable>
           </View>
 
           <View style={styles.formContainer}>
             <CustomInput
-              label="Email *"
+              label={`${t("email_label")} *`}
               value={email}
               onChangeText={setEmail}
-              placeholder="name@example.com"
+              placeholder={t("email_placeholder")}
               keyboardType="email-address"
               autoCapitalize="none"
             />
             
             <CustomInput
-              label="Name *"
+              label={t("full_name_label")}
               value={username}
               onChangeText={setUsername}
-              placeholder={isStudent ? "Student name" : "Parent name"}
+              placeholder={isStudent ? t("student_name_placeholder") : t("parent_name_placeholder")}
             />
             
             <CustomInput
-              label="Password *"
+              label={`${t("password_label")} *`}
               value={password}
               onChangeText={setPassword}
-              placeholder="••••••••"
+              placeholder={t("password_placeholder")}
               secureTextEntry
               autoCapitalize="none"
             />
@@ -162,13 +172,13 @@ export default function SignUp() {
             {isStudent && (
               <View style={styles.studentFields}>
                 <CustomInput
-                  label="School"
+                  label={t("school_label")}
                   value={school}
                   onChangeText={setSchool}
                   placeholder="School name"
                 />
                 <CustomInput
-                  label="City"
+                  label={t("city_label")}
                   value={city}
                   onChangeText={setCity}
                   placeholder="Tel Aviv"
@@ -176,18 +186,38 @@ export default function SignUp() {
                 <GradeSelector
                   value={grade}
                   onChange={setGrade}
-                  label="Grade level"
+                  label={t("grade_label")}
                 />
                 <MajorsInput
-                  label="Majors / subjects"
+                  label={t("majors_label")}
                   value={majors}
                   onChange={setMajors}
                 />
               </View>
             )}
 
+            {/* Preferred Language */}
+            <Text style={[styles.selectorLabel, { marginTop: 16 }]}>Preferred Language</Text>
+            <View style={styles.segment}>
+              {LANG_OPTIONS.map((opt) => {
+                const isActive = preferredLang === opt.code;
+                return (
+                  <Pressable
+                    key={opt.code}
+                    onPress={() => {
+                      setPreferredLang(opt.code);
+                      changeLanguage(opt.code);
+                    }}
+                    style={[styles.chip, isActive && styles.chipActive]}
+                  >
+                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{opt.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
             <CustomButton
-              title={loading ? "Signing up…" : "Sign Up"}
+              title={loading ? t("signing_up") : t("sign_up_btn")}
               onPress={handleSubmit}
               disabled={loading || !email.trim() || !password.trim() || !username.trim()}
               style={styles.signUpBtn}
@@ -196,11 +226,13 @@ export default function SignUp() {
             {loading && <ActivityIndicator style={{ marginTop: 12 }} color={colors.accent} />}
 
             <View style={styles.footerRow}>
-              <Text style={styles.footerText}>Already have an account? </Text>
+              <Text style={styles.footerText}>{t("already_have_account")}{" "}</Text>
               <Pressable onPress={() => router.push("/sign-in")}>
-                <Text style={styles.signInLink}>Sign in</Text>
+                <Text style={styles.signInLink}>{t("sign_in_btn")}</Text>
               </Pressable>
             </View>
+
+            <LanguageSwitcher />
           </View>
         </View>
       </ScrollView>

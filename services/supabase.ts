@@ -61,6 +61,7 @@ export type Profile = {
   career_goal: string | null; // original broad career title from catalog (null = no goal)
   career_specialization: string | null; // latest narrowed-down career label (evolves with choices)
   career_path: string[]; // ordered breadcrumb: broad → specific
+  language?: string; // language preference: 'en' | 'he' | 'ar'
   created_at: string;
   updated_at: string;
 };
@@ -92,11 +93,25 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   const cached = profileCache.get(userId);
 
   const fetchPromise = (async () => {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .maybeSingle();
+
+    // Handle database clock skew errors where Auth container time is ahead of Postgres/PostgREST
+    if (error && (error.code === "PGRST303" || error.message?.includes("JWT issued at future"))) {
+      console.warn("getProfile: JWT issued at future. Retrying in 1.2s...");
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const retry = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      data = retry.data;
+      error = retry.error;
+    }
+
     if (error) {
       console.error("getProfile", error);
       return null;

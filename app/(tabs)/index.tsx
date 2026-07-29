@@ -23,6 +23,7 @@ import GuidePath from "../../components/guide/GuidePath";
 import ToyNodeButton from "../../components/guide/ToyNodeButton";
 import { colors, fonts } from "../../constants/theme";
 import { useAuth } from "../../hooks/AuthContext";
+import { useLanguage } from "../../hooks/LanguageContext";
 import { authErrorMessage } from "../../services/authErrors";
 import {
   ensureFirstUnit,
@@ -225,6 +226,7 @@ function AnimatedGoalTitle({ title }: { title: string }) {
 export default function Guide() {
   const { user } = useAuth();
   const { showTutorial } = useTutorial();
+  const { t } = useLanguage();
   
   // Role & Shared loading states
   const [role, setRole] = useState<string | null>(null);
@@ -542,20 +544,20 @@ export default function Guide() {
   const renderParentDashboard = () => {
     return (
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.h1}>Hi {name},{"\n"}your parent dashboard</Text>
+        <Text style={styles.h1}>{t("guide_greeting_prefix")}{name}{t("parent_greeting_suffix")}</Text>
 
         {/* Link Child Input Card */}
         <View style={styles.card}>
-          <Text style={styles.label}>Link a Student</Text>
+          <Text style={styles.label}>{t("parent_link_student")}</Text>
           <Text style={[styles.body, { marginBottom: 12 }]}>
-            Enter the 6-character sharing code generated inside your child's profile screen to follow their progress.
+            {t("parent_link_instructions")}
           </Text>
           <View style={styles.linkRow}>
             <TextInput
               style={styles.codeTextInput}
               value={linkCodeInput}
               onChangeText={setLinkCodeInput}
-              placeholder="E.g., A3X9T2"
+              placeholder={t("parent_link_placeholder")}
               autoCapitalize="characters"
               maxLength={6}
               placeholderTextColor={colors.muted}
@@ -572,20 +574,20 @@ export default function Guide() {
               {linkBusy ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.linkButtonText}>Link</Text>
+                <Text style={styles.linkButtonText}>{t("parent_link_btn")}</Text>
               )}
             </Pressable>
           </View>
         </View>
 
         {/* Linked Children list */}
-        <Text style={[styles.sectionHeading, { marginTop: 10 }]}>Your Connected Students</Text>
+        <Text style={[styles.sectionHeading, { marginTop: 10 }]}>{t("parent_connected_students")}</Text>
         {linkedChildren.length === 0 ? (
           <View style={[styles.card, { alignItems: "center", paddingVertical: 32 }]}>
             <Ionicons name="people-outline" size={48} color={colors.muted} style={{ marginBottom: 10 }} />
-            <Text style={styles.emptyText}>No linked student accounts yet.</Text>
+            <Text style={styles.emptyText}>{t("parent_no_links")}</Text>
             <Text style={[styles.body, { textAlign: "center", fontSize: 13, marginTop: 4 }]}>
-              Link your child's account above to view their career decisions.
+              {t("parent_no_links_sub")}
             </Text>
           </View>
         ) : (
@@ -613,8 +615,8 @@ export default function Guide() {
                     <Text style={styles.childNameText}>{child.childName}</Text>
                     <Text style={styles.childGoalText} numberOfLines={1}>
                       {child.careerGoal
-                        ? `Goal: ${child.careerGoal}${child.currentSpecialization && child.currentSpecialization !== child.careerGoal ? ` (${child.currentSpecialization})` : ""}`
-                        : "No goal selected yet"}
+                        ? `${t("parent_goal_prefix")}${child.careerGoal}${child.currentSpecialization && child.currentSpecialization !== child.careerGoal ? ` (${child.currentSpecialization})` : ""}`
+                        : t("parent_no_goal")}
                     </Text>
                   </View>
                   <View style={styles.childHeaderActions}>
@@ -636,10 +638,10 @@ export default function Guide() {
                 {/* Expanded child progress history */}
                 {isExpanded && (
                   <View style={styles.progressHistoryBody}>
-                    <Text style={styles.timelineLabel}>Progression History</Text>
+                    <Text style={styles.timelineLabel}>{t("parent_progression_history")}</Text>
                     {progressList.length === 0 ? (
                       <Text style={styles.emptyProgressText}>
-                        No milestones completed yet. As the student works through their learning unit steps, updates will appear here.
+                        {t("parent_no_milestones")}
                       </Text>
                     ) : (
                       progressList.map((item, idx) => (
@@ -708,7 +710,7 @@ export default function Guide() {
           }}
         >
           <View style={styles.topTitleRow}>
-            <Text style={styles.h1}>Hi {name},{"\n"}your career guide</Text>
+            <Text style={styles.h1}>{t("guide_greeting_prefix")}{name}{t("guide_greeting_suffix")}</Text>
             <Image
               source={require("../../assets/images/logo_final.png")}
               style={styles.headerLogo}
@@ -720,11 +722,11 @@ export default function Guide() {
             <>
               {/* Goal + Specialization header */}
               <View style={styles.card}>
-                <Text style={styles.label}>Your goal</Text>
+                <Text style={styles.label}>{t("guide_your_goal")}</Text>
                 <AnimatedGoalTitle title={goalTitle} />
                 {specialization && specialization !== goalTitle ? (
                   <>
-                    <Text style={styles.specHeader}>Current focus</Text>
+                    <Text style={styles.specHeader}>{t("guide_current_focus")}</Text>
                     <Text style={styles.specValue}>{specialization}</Text>
                   </>
                 ) : null}
@@ -733,19 +735,19 @@ export default function Guide() {
                 ) : null}
                 {goalCareerId ? (
                   <CustomButton
-                    title="View career"
+                    title={t("guide_view_career")}
                     onPress={() => router.push(`/career?id=${goalCareerId}` as any)}
                   />
                 ) : null}
                 <CustomButton
-                  title={downloadingResume ? "Generating Resume…" : "Download Resume"}
+                  title={downloadingResume ? t("guide_generating_resume") : t("guide_download_resume")}
                   onPress={handleDownloadResume}
                   disabled={downloadingResume}
                   style={styles.resumeBtn}
                   textStyle={{ color: "#ffffff" }}
                 />
                 <CustomButton
-                  title="Clear goal"
+                  title={t("guide_clear_goal")}
                   onPress={handleClear}
                   disabled={busy}
                   style={styles.clearBtn}
@@ -756,27 +758,24 @@ export default function Guide() {
               {/* Journey paused state */}
               {journeyPaused && (
                 <View style={styles.card}>
-                  <Text style={styles.label}>🎓 Journey Complete</Text>
+                  <Text style={styles.label}>{t("guide_journey_complete")}</Text>
                   <Text style={styles.body}>
-                    You've explored your path to {specialization ?? goalTitle} and paused your
-                    journey. You can clear your goal to start a new path, or continue exploring your
-                    career.
+                    {t("guide_journey_complete_desc_prefix")}{specialization ?? goalTitle}{t("guide_journey_complete_desc_suffix")}
                   </Text>
                 </View>
               )}
 
               {/* Guide path rendering */}
               {guideLoading && units.length === 0 ? (
-                <GeneratingProgressBar label="Generating your learning path" />
+                <GeneratingProgressBar label={t("guide_generating_path")} />
               ) : guideError && units.length === 0 ? (
                 <View style={styles.card}>
-                  <Text style={styles.title}>Generation temporarily unavailable</Text>
+                  <Text style={styles.title}>{t("guide_gen_unavailable")}</Text>
                   <Text style={styles.body}>
-                    Our AI is a bit busy right now. Tap below to try again — it usually works on the
-                    second attempt.
+                    {t("guide_gen_unavailable_desc")}
                   </Text>
                   <CustomButton
-                    title="Retry"
+                    title={t("guide_retry")}
                     onPress={() => user && loadGuide(user.id)}
                     style={{ marginTop: 12 }}
                   />
@@ -804,12 +803,12 @@ export default function Guide() {
           ) : (
             /* No goal set — Main Event Card */
             <View style={styles.mainEventCard}>
-              <Text style={styles.mainEventTitle}>Choose a career to start your guided path</Text>
+              <Text style={styles.mainEventTitle}>{t("guide_choose_career")}</Text>
               
               <View style={styles.buttonsColumn}>
                 {/* Questionnaire 3D Button Section */}
                 <View style={styles.buttonCol}>
-                  <Text style={[styles.mainEventSubLabel, { marginBottom: 10 }]}>Take the questionnaire:</Text>
+                  <Text style={[styles.mainEventSubLabel, { marginBottom: 10 }]}>{t("guide_take_quiz_label")}</Text>
                   <Spinning3DButton
                     size={136}
                     topColor="#107c8f"
@@ -825,7 +824,7 @@ export default function Guide() {
                 </View>
 
                 {/* "or browse" middle label */}
-                <Text style={[styles.mainEventSubLabel, { marginTop: 16, marginBottom: 16 }]}>or browse:</Text>
+                <Text style={[styles.mainEventSubLabel, { marginTop: 16, marginBottom: 16 }]}>{t("guide_or_browse_label")}</Text>
 
                 {/* Browse Careers 3D Button Section */}
                 <View style={styles.buttonCol}>
@@ -844,7 +843,7 @@ export default function Guide() {
                 </View>
 
                 {/* Bottom label */}
-                <Text style={[styles.mainEventSubLabel, { marginTop: 12 }]}>to find what YOU like!</Text>
+                <Text style={[styles.mainEventSubLabel, { marginTop: 12 }]}>{t("guide_find_what_you_like")}</Text>
               </View>
             </View>
           )}

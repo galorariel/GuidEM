@@ -16,56 +16,58 @@ import ToyNodeButton from "../../components/guide/ToyNodeButton";
 
 const HOLLAND_CODES = ["Realistic", "Investigative", "Artistic", "Social", "Enterprising", "Conventional"];
 
-const questions = [
-  { text: "Study whales and other types of marine life", categories: [false, true, false, false, false, false] },
-  { text: "Play a musical instrument", categories: [false, false, true, false, false, false] },
-  { text: "Supervise the activities of children at a camp", categories: [false, false, false, true, false, false] },
-  { text: "Manage a clothing store", categories: [false, false, false, false, true, false] },
-  { text: "Operate a calculator", categories: [false, false, false, false, false, true] },
-  { text: "Assemble products in a factory", categories: [true, false, false, false, false, false] },
-  { text: "Work in a biology lab", categories: [false, true, false, false, false, false] },
-  { text: "Perform stunts for a movie or television show", categories: [false, false, true, false, false, false] },
-  { text: "Teach children how to read", categories: [false, false, false, true, false, false] },
-  { text: "Sell houses", categories: [false, false, false, false, true, false] },
-  { text: "Handle customers' bank transactions", categories: [false, false, false, false, false, true] },
-  { text: "Install flooring in houses", categories: [true, false, false, false, false, false] },
-  { text: "Make a map of the bottom of an ocean", categories: [false, true, false, false, false, false] },
-  { text: "Design sets for plays", categories: [false, false, true, false, false, false] },
-  { text: "Help elderly people with their daily activities", categories: [false, false, false, true, false, false] },
-  { text: "Run a toy store", categories: [false, false, false, false, true, false] },
-  { text: "Keep shipping and receiving records", categories: [false, false, false, false, false, true] },
-  { text: "Test the quality of parts before shipment", categories: [true, false, false, false, false, false] },
-  { text: "Study the structure of the human body", categories: [false, true, false, false, false, false] },
-  { text: "Conduct a musical choir", categories: [false, false, true, false, false, false] },
-  { text: "Give career guidance to people", categories: [false, false, false, true, false, false] },
-  { text: "Sell restaurant franchises to individuals", categories: [false, false, false, false, true, false] },
-  { text: "Generate the monthly payroll checks for an office", categories: [false, false, false, false, false, true] },
-  { text: "Lay brick or tile", categories: [true, false, false, false, false, false] },
-  { text: "Study animal behavior", categories: [false, true, false, false, false, false] },
-  { text: "Direct a play", categories: [false, false, true, false, false, false] },
-  { text: "Do volunteer work at a non-profit organization", categories: [false, false, false, true, false, false] },
-  { text: "Sell merchandise at a department store", categories: [false, false, false, false, true, false] },
-  { text: "Inventory supplies using a hand-held computer", categories: [false, false, false, false, false, true] },
-  { text: "Work on an offshore oil-drilling rig", categories: [true, false, false, false, false, false] },
-  { text: "Do research on plants or animals", categories: [false, true, false, false, false, false] },
-  { text: "Design artwork for magazines", categories: [false, false, true, false, false, false] },
-  { text: "Help people who have problems with drugs or alcohol", categories: [false, false, false, true, false, false] },
-  { text: "Manage the operations of a hotel", categories: [false, false, false, false, true, false] },
-  { text: "Use a computer program to generate customer bills", categories: [false, false, false, false, false, true] },
-  { text: "Assemble electronic parts", categories: [true, false, false, false, false, false] },
-  { text: "Develop a new medical treatment or procedure", categories: [false, true, false, false, false, false] },
-  { text: "Write a song", categories: [false, false, true, false, false, false] },
-  { text: "Teach an individual an exercise routine", categories: [false, false, false, true, false, false] },
-  { text: "Operate a beauty salon or barber shop", categories: [false, false, false, false, true, false] },
-  { text: "Maintain employee records", categories: [false, false, false, false, false, true] },
-  { text: "Operate a grinding machine in a factory", categories: [true, false, false, false, false, false] },
-  { text: "Conduct biological research", categories: [false, true, false, false, false, false] },
-  { text: "Write books or plays", categories: [false, false, true, false, false, false] },
-  { text: "Help people with family-related problems", categories: [false, false, false, true, false, false] },
-  { text: "Manage a department within a large company", categories: [false, false, false, false, true, false] },
-  { text: "Compute and record statistical and other numerical data", categories: [false, false, false, false, false, true] },
-  { text: "Fix a broken faucet", categories: [true, false, false, false, false, false] },
+const questionsKeys = [
+  { key: "q1", categories: [false, true, false, false, false, false] },
+  { key: "q2", categories: [false, false, true, false, false, false] },
+  { key: "q3", categories: [false, false, false, true, false, false] },
+  { key: "q4", categories: [false, false, false, false, true, false] },
+  { key: "q5", categories: [false, false, false, false, false, true] },
+  { key: "q6", categories: [true, false, false, false, false, false] },
+  { key: "q7", categories: [false, true, false, false, false, false] },
+  { key: "q8", categories: [false, false, true, false, false, false] },
+  { key: "q9", categories: [false, false, false, true, false, false] },
+  { key: "q10", categories: [false, false, false, false, true, false] },
+  { key: "q11", categories: [false, false, false, false, false, true] },
+  { key: "q12", categories: [true, false, false, false, false, false] },
+  { key: "q13", categories: [false, true, false, false, false, false] },
+  { key: "q14", categories: [false, false, true, false, false, false] },
+  { key: "q15", categories: [false, false, false, true, false, false] },
+  { key: "q16", categories: [false, false, false, false, true, false] },
+  { key: "q17", categories: [false, false, false, false, false, true] },
+  { key: "q18", categories: [true, false, false, false, false, false] },
+  { key: "q19", categories: [false, true, false, false, false, false] },
+  { key: "q20", categories: [false, false, true, false, false, false] },
+  { key: "q21", categories: [false, false, false, true, false, false] },
+  { key: "q22", categories: [false, false, false, false, true, false] },
+  { key: "q23", categories: [false, false, false, false, false, true] },
+  { key: "q24", categories: [true, false, false, false, false, false] },
+  { key: "q25", categories: [false, true, false, false, false, false] },
+  { key: "q26", categories: [false, false, true, false, false, false] },
+  { key: "q27", categories: [false, false, false, true, false, false] },
+  { key: "q28", categories: [false, false, false, false, true, false] },
+  { key: "q29", categories: [false, false, false, false, false, true] },
+  { key: "q30", categories: [true, false, false, false, false, false] },
+  { key: "q31", categories: [false, true, false, false, false, false] },
+  { key: "q32", categories: [false, false, true, false, false, false] },
+  { key: "q33", categories: [false, false, false, true, false, false] },
+  { key: "q34", categories: [false, false, false, false, true, false] },
+  { key: "q35", categories: [false, false, false, false, false, true] },
+  { key: "q36", categories: [true, false, false, false, false, false] },
+  { key: "q37", categories: [false, true, false, false, false, false] },
+  { key: "q38", categories: [false, false, true, false, false, false] },
+  { key: "q39", categories: [false, false, false, true, false, false] },
+  { key: "q40", categories: [false, false, false, false, true, false] },
+  { key: "q41", categories: [false, false, false, false, false, true] },
+  { key: "q42", categories: [true, false, false, false, false, false] },
+  { key: "q43", categories: [false, true, false, false, false, false] },
+  { key: "q44", categories: [false, false, true, false, false, false] },
+  { key: "q45", categories: [false, false, false, true, false, false] },
+  { key: "q46", categories: [false, false, false, false, true, false] },
+  { key: "q47", categories: [false, false, false, false, false, true] },
+  { key: "q48", categories: [true, false, false, false, false, false] },
 ];
+
+const questions = questionsKeys;
 
 const QUESTIONS_PER_PAGE = 4;
 const totalPages = Math.ceil(questions.length / QUESTIONS_PER_PAGE);
@@ -220,9 +222,12 @@ function AnimatedTypeWord({ text }: { text: string }) {
   );
 }
 
+import { useLanguage } from "../../hooks/LanguageContext";
+
 export default function QuestionnaireTab() {
   const { user } = useAuth();
   const { showTutorial } = useTutorial();
+  const { language, t } = useLanguage();
   const [mode, setMode] = useState<Mode>("loading");
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>(new Array(questions.length).fill(0)); // Initialize with 0 for no selection
   const [saving, setSaving] = useState(false);
@@ -266,13 +271,13 @@ export default function QuestionnaireTab() {
     if (profile?.personality_type) {
       setResultPrimary(cap(profile.personality_type));
       setResultSecondary(null);
-      setRecommendations(await recommendCareers(profile.personality_type, null, 5));
+      setRecommendations(await recommendCareers(profile.personality_type, null, 5, language));
       setMode("results");
     } else {
       setMode("quiz");
       setCurrentCardIndex(0);
     }
-  }, [user]);
+  }, [user, language]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -329,7 +334,7 @@ export default function QuestionnaireTab() {
     const secondCategory = scoredCategories.length > 1 ? scoredCategories[1] : null;
 
     if (topCategory.score <= 0) {
-      Alert.alert("No selections made", "Please rate some activities to get your personality types.");
+      Alert.alert(t("alert_no_selections"), t("alert_no_selections_msg"));
       return;
     }
 
@@ -340,20 +345,20 @@ export default function QuestionnaireTab() {
     const secondaryType = secondaryLabel ? (secondaryLabel.toLowerCase() as PersonalityType) : null;
 
     if (!user) {
-      Alert.alert("Sign in required", "Please sign in to save your results.");
+      Alert.alert(t("alert_sign_in_required"), t("alert_sign_in_required_msg"));
       return;
     }
 
     setSaving(true);
     try {
       await upsertProfile(user.id, { personality_type: primaryType });
-      const recs = await recommendCareers(primaryType, secondaryType, 5);
+      const recs = await recommendCareers(primaryType, secondaryType, 5, language);
       setResultPrimary(primaryLabel);
       setResultSecondary(secondaryLabel);
       setRecommendations(recs);
       setMode("results");
     } catch (err: any) {
-      Alert.alert("Something went wrong", authErrorMessage(err, "Please try again."));
+      Alert.alert(t("alert_something_wrong"), authErrorMessage(err, "Please try again."));
     } finally {
       setSaving(false);
     }
@@ -366,7 +371,7 @@ export default function QuestionnaireTab() {
       setGoalCareerId(career.id); // reflect the new goal so the compass fills on return
       router.replace("/(tabs)" as any); // jump to the Guide tab (replace refocuses it → path regenerates)
     } catch (err: any) {
-      Alert.alert("Something went wrong", authErrorMessage(err, "Please try again."));
+      Alert.alert(t("alert_something_wrong"), authErrorMessage(err, "Please try again."));
     }
   };
 
@@ -380,7 +385,7 @@ export default function QuestionnaireTab() {
 
   const isCurrentPageComplete = () => {
     const startIndex = currentCardIndex * QUESTIONS_PER_PAGE;
-    const endIndex = Math.min(startIndex + QUESTIONS_PER_PAGE, questions.length);
+    const endIndex = Math.min(startIndex + QUESTIONS_PER_PAGE, questionsKeys.length);
     for (let i = startIndex; i < endIndex; i++) {
       if (selectedAnswers[i] === 0) return false;
     }
@@ -408,7 +413,7 @@ export default function QuestionnaireTab() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: 62, paddingBottom: 20 }}>
       <View style={styles.topHeaderRow}>
-        <Text style={styles.h1}>Career Questionnaire</Text>
+        <Text style={styles.h1}>{t("quiz_header")}</Text>
         {mode === "results" && (
           <Pressable
             onPress={retake}
@@ -418,7 +423,7 @@ export default function QuestionnaireTab() {
             <View style={styles.retakeHeaderBtn}>
               <Ionicons name="refresh-outline" size={24} color={colors.accent} />
             </View>
-            <Text style={styles.retakeLabelText}>Retake</Text>
+            <Text style={styles.retakeLabelText}>{t("quiz_retake")}</Text>
           </Pressable>
         )}
       </View>
@@ -428,15 +433,15 @@ export default function QuestionnaireTab() {
       ) : mode === "results" ? (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 30 }}>
           <View style={styles.resultsContainer}>
-            <Text style={[styles.sub, { textAlign: "center", marginBottom: 20 }]}>You&apos;ve completed the personality test.</Text>
+            <Text style={[styles.sub, { textAlign: "center", marginBottom: 20 }]}>{t("quiz_completed")}</Text>
             <View style={styles.resultsHeaderCentered}>
-              <Text style={styles.yourTypeSubtitle}>YOUR PERSONALITY TYPE:</Text>
-              <AnimatedTypeWord text={`${resultPrimary}${resultSecondary ? ` / ${resultSecondary}` : ""}`} />
+              <Text style={styles.yourTypeSubtitle}>{t("quiz_your_type_label")}</Text>
+              <AnimatedTypeWord text={`${resultPrimary ?? ""}${resultSecondary ? ` / ${resultSecondary}` : ""}`} />
             </View>
 
             {recommendations.length > 0 ? (
               <>
-                <Text style={styles.resultsSubtitle}>Recommended careers</Text>
+                <Text style={styles.resultsSubtitle}>{t("quiz_recommended_careers")}</Text>
                 {recommendations.map((career) => (
                   <CareerCard
                     key={career.id}
@@ -450,14 +455,14 @@ export default function QuestionnaireTab() {
                 ))}
               </>
             ) : (
-              <Text style={styles.sub}>No recommendations found for your type.</Text>
+              <Text style={styles.sub}>{t("quiz_no_recs")}</Text>
             )}
           </View>
         </ScrollView>
       ) : (
         <View style={{ flex: 1 }}>
           <View style={{ paddingHorizontal: 22 }}>
-            <Text style={styles.sub}>Rate how much you like each activity (1-5) to discover your personality types.</Text>
+            <Text style={styles.sub}>{t("quiz_instructions")}</Text>
             
             <View style={styles.progressBarContainer}>
               <View style={[styles.progressBarFill, { width: `${((currentCardIndex + 1) / totalPages) * 100}%` }]} />
@@ -485,7 +490,7 @@ export default function QuestionnaireTab() {
                     return (
                       <View key={globalIndex} style={styles.questionContainer}>
                         <RatingScale
-                          label={question.text}
+                          label={t(question.key as any)}
                           selectedValue={selectedAnswers[globalIndex]}
                           onValueChange={(value) => handleRatingChange(globalIndex, value)}
                           isLast={localIndex === pageQuestions.length - 1}

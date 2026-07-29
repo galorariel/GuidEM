@@ -7,17 +7,19 @@ import { colors, fonts } from "../constants/theme";
 import { useAuth } from "../hooks/AuthContext";
 import { getActivitiesByIds, getCareersByIds, type Activity, type Career } from "../services/catalog";
 import { getSavedIds } from "../services/supabase";
-
-function priceLabel(a: Activity) {
-  return a.priceAmount === 0 ? "Free" : `${a.priceCurrency}${a.priceAmount}`;
-}
+import { useLanguage } from "../hooks/LanguageContext";
 
 export default function Saved() {
   const { user } = useAuth();
+  const { language, t } = useLanguage();
   const [careers, setCareers] = useState<Career[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const priceLabel = (a: Activity) => {
+    return a.priceAmount === 0 ? t("activity_free") : `${a.priceCurrency}${a.priceAmount}`;
+  };
 
   const load = useCallback(async () => {
     if (!user) { setCareers([]); setActivities([]); setLoading(false); return; }
@@ -25,11 +27,14 @@ export default function Saved() {
       getSavedIds(user.id, "career"),
       getSavedIds(user.id, "activity"),
     ]);
-    const [c, a] = await Promise.all([getCareersByIds(careerIds), getActivitiesByIds(activityIds)]);
+    const [c, a] = await Promise.all([
+      getCareersByIds(careerIds, language),
+      getActivitiesByIds(activityIds, language)
+    ]);
     setCareers(c);
     setActivities(a);
     setLoading(false);
-  }, [user]);
+  }, [user, language]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -43,18 +48,18 @@ export default function Saved() {
       contentContainerStyle={{ padding: 22, paddingBottom: 40 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text style={styles.section}>{"Careers you're considering"}</Text>
+      <Text style={styles.section}>{t("saved_careers_header")}</Text>
       {careers.length === 0 ? (
-        <Text style={styles.empty}>No careers saved yet.</Text>
+        <Text style={styles.empty}>{t("saved_no_careers")}</Text>
       ) : (
         careers.map((c) => (
           <CareerCard key={c.id} item={c} onPress={() => router.push(`/career?id=${c.id}` as any)} />
         ))
       )}
 
-      <Text style={styles.section}>Saved activities</Text>
+      <Text style={styles.section}>{t("saved_activities_header")}</Text>
       {activities.length === 0 ? (
-        <Text style={styles.empty}>No activities saved yet.</Text>
+        <Text style={styles.empty}>{t("saved_no_activities")}</Text>
       ) : (
         activities.map((a) => (
           <ActivityCard

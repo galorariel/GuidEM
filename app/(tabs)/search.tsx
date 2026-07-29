@@ -12,6 +12,8 @@ import { addSaved, getProfile, getSavedActivityIds, getSavedIds, removeSaved, se
 import { authErrorMessage } from "../../services/authErrors";
 import { useTutorial } from "../../hooks/TutorialContext";
 
+import { useLanguage } from "../../hooks/LanguageContext";
+
 type Mode = "careers" | "activities";
 const CATEGORIES = ["Volunteering", "Extracurricular", "Professional Meetings", "Workshop", "Job Shadowing", "Internship", "University Visit"];
 
@@ -22,6 +24,7 @@ function priceLabel(a: Activity) {
 export default function Search() {
   const { user } = useAuth();
   const { showTutorial } = useTutorial();
+  const { language, t } = useLanguage();
   const [mode, setMode] = useState<Mode>("careers");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -60,17 +63,17 @@ export default function Search() {
     setLoading(true);
     (async () => {
       if (mode === "careers") {
-        const r = await searchCareers(query);
+        const r = await searchCareers(query, {}, language);
         if (active) setCareers(r);
       } else {
         const budget = maxBudget.trim() ? Number(maxBudget) : null;
-        const r = await searchActivities(query, { category: category || undefined, maxBudget: Number.isFinite(budget as number) ? budget : null });
+        const r = await searchActivities(query, { category: category || undefined, maxBudget: Number.isFinite(budget as number) ? budget : null }, language);
         if (active) setActivities(r);
       }
       if (active) setLoading(false);
     })();
     return () => { active = false; };
-  }, [query, mode, category, maxBudget, user]);
+  }, [query, mode, category, maxBudget, user, language]);
 
   const toggleSave = async (id: string) => {
     if (!user) { router.push("/sign-in"); return; }

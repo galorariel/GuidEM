@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./AuthContext";
+import { useLanguage } from "./LanguageContext";
 
 export interface TutorialStep {
   id: string;
@@ -12,115 +13,58 @@ export interface TutorialStep {
   primaryActionText: string;
 }
 
-const TUTORIALS: Record<string, TutorialStep> = {
-  welcome: {
-    id: "welcome",
-    title: "Welcome to GuidEM! 🚀",
-    description: "Your personalized guide to discovering your dream career and building a roadmap to get there.",
-    bullets: [
-      "Start by taking our Questionnaire to match your personality.",
-      "Or explore careers, majors, and activities in the Browse tab.",
-    ],
-    icon: "rocket-outline",
-    primaryActionText: "Let's Go!",
-  },
-  quiz_start: {
-    id: "quiz_start",
-    title: "Personality Questionnaire 🧠",
-    description: "Find out what careers fit your natural interests and personality type.",
-    bullets: [
-      "Choose how much you agree with each activity description.",
-      "Be honest — there are no right or wrong answers!",
-      "It takes less than 3 minutes to complete.",
-    ],
-    icon: "chatbubble-ellipses-outline",
-    primaryActionText: "Start Quiz",
-  },
-  recs_ready: {
-    id: "recs_ready",
-    title: "Your Recommendations! 🎉",
-    description: "We've matched your personality profile (RIASEC code) with exciting careers.",
-    bullets: [
-      "Explore each career card to learn about salaries, majors, and details.",
-      "Save the ones you like to your profile.",
-      "Generate a step-by-step path to start building real skills!",
-    ],
-    icon: "trophy-outline",
-    primaryActionText: "Explore Matches",
-  },
-  career_detail: {
-    id: "career_detail",
-    title: "Career Deep Dive 🔍",
-    description: "Here you can see everything about this career, including study subjects, salary, and requirements.",
-    bullets: [
-      "Tap Save (heart) to bookmark this career in your profile.",
-      "Tap Start Guide (map) to build a custom step-by-step roadmap.",
-      "Look through options until you find the path that excites you!",
-    ],
-    icon: "compass-outline",
-    primaryActionText: "Got It",
-  },
-  browse: {
-    id: "browse",
-    title: "Explore & Discover 🌐",
-    description: "Browse the catalog to find careers, school majors, and skill-building activities.",
-    bullets: [
-      "Search for any job title or specialization.",
-      "Filter activities by category (Tech, Creative, Science).",
-      "Discover high school majors that align with your goals.",
-    ],
-    icon: "search-outline",
-    primaryActionText: "Start Browsing",
-  },
-  profile: {
-    id: "profile",
-    title: "Your Profile Dashboard 👤",
-    description: "Keep track of your achievements, saved items, and personal details.",
-    bullets: [
-      "View your saved careers, majors, and activities.",
-      "Link a Parent to share your career path and invite them to collaborate.",
-      "Update your grade level, school majors, or contact info anytime.",
-    ],
-    icon: "person-outline",
-    primaryActionText: "Got It",
-  },
-  guide_path: {
-    id: "guide_path",
-    title: "Your Learning Guide 🗺️",
-    description: "This is your customized roadmap to build skills for your selected career!",
-    bullets: [
-      "Follow the steps sequentially: lessons, tasks, and quizzes.",
-      "Read the instructions and check the resource links inside each step.",
-      "Tap 'Mark as Done' to earn progress and move forward.",
-    ],
-    icon: "map-outline",
-    primaryActionText: "Let's Start!",
-  },
-  guide_choice: {
-    id: "guide_choice",
-    title: "Choose Your Direction ⚡",
-    description: "You've reached a branching choice in your career path!",
-    bullets: [
-      "Select the specialization direction that interests you most.",
-      "GuidEM will instantly generate the next personalized learning unit.",
-      "Your path dynamically changes based on your decisions!",
-    ],
-    icon: "git-branch-outline",
-    primaryActionText: "Decide Path",
-  },
-  activity_detail: {
-    id: "activity_detail",
-    title: "Practical Activities 🛠️",
-    description: "Get hands-on experience by completing real-world tasks and challenges.",
-    bullets: [
-      "Read the activity description and requirements carefully.",
-      "Follow the external links for references, documentation, or tools.",
-      "Mark as completed to keep track of your practical achievements.",
-    ],
-    icon: "construct-outline",
-    primaryActionText: "Got It",
-  },
-};
+function getTutorialStep(id: string, t: (key: any) => string): TutorialStep | null {
+  const map: Record<string, { icon: string; keys: { title: any; desc: any; bullets: any[]; action: any } }> = {
+    welcome: {
+      icon: "rocket-outline",
+      keys: { title: "tut_welcome_title", desc: "tut_welcome_desc", bullets: ["tut_welcome_b1", "tut_welcome_b2"], action: "tut_welcome_action" },
+    },
+    quiz_start: {
+      icon: "chatbubble-ellipses-outline",
+      keys: { title: "tut_quiz_start_title", desc: "tut_quiz_start_desc", bullets: ["tut_quiz_start_b1", "tut_quiz_start_b2", "tut_quiz_start_b3"], action: "tut_quiz_start_action" },
+    },
+    recs_ready: {
+      icon: "trophy-outline",
+      keys: { title: "tut_recs_ready_title", desc: "tut_recs_ready_desc", bullets: ["tut_recs_ready_b1", "tut_recs_ready_b2", "tut_recs_ready_b3"], action: "tut_recs_ready_action" },
+    },
+    career_detail: {
+      icon: "compass-outline",
+      keys: { title: "tut_career_detail_title", desc: "tut_career_detail_desc", bullets: ["tut_career_detail_b1", "tut_career_detail_b2", "tut_career_detail_b3"], action: "tut_career_detail_action" },
+    },
+    browse: {
+      icon: "search-outline",
+      keys: { title: "tut_browse_title", desc: "tut_browse_desc", bullets: ["tut_browse_b1", "tut_browse_b2", "tut_browse_b3"], action: "tut_browse_action" },
+    },
+    profile: {
+      icon: "person-outline",
+      keys: { title: "tut_profile_title", desc: "tut_profile_desc", bullets: ["tut_profile_b1", "tut_profile_b2", "tut_profile_b3"], action: "tut_profile_action" },
+    },
+    guide_path: {
+      icon: "map-outline",
+      keys: { title: "tut_guide_path_title", desc: "tut_guide_path_desc", bullets: ["tut_guide_path_b1", "tut_guide_path_b2", "tut_guide_path_b3"], action: "tut_guide_path_action" },
+    },
+    guide_choice: {
+      icon: "git-branch-outline",
+      keys: { title: "tut_guide_choice_title", desc: "tut_guide_choice_desc", bullets: ["tut_guide_choice_b1", "tut_guide_choice_b2", "tut_guide_choice_b3"], action: "tut_guide_choice_action" },
+    },
+    activity_detail: {
+      icon: "construct-outline",
+      keys: { title: "tut_activity_detail_title", desc: "tut_activity_detail_desc", bullets: ["tut_activity_detail_b1", "tut_activity_detail_b2", "tut_activity_detail_b3"], action: "tut_activity_detail_action" },
+    },
+  };
+
+  const item = map[id];
+  if (!item) return null;
+
+  return {
+    id,
+    title: t(item.keys.title),
+    description: t(item.keys.desc),
+    bullets: item.keys.bullets.map((b) => t(b)),
+    icon: item.icon,
+    primaryActionText: t(item.keys.action),
+  };
+}
 
 interface TutorialContextType {
   activeTutorial: TutorialStep | null;
@@ -133,67 +77,81 @@ const TutorialContext = createContext<TutorialContextType | undefined>(undefined
 
 export function TutorialProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
+  const [seenTutorials, setSeenTutorials] = useState<Record<string, boolean>>({});
   const [activeTutorial, setActiveTutorial] = useState<TutorialStep | null>(null);
-  const [seenTutorials, setSeenTutorials] = useState<Set<string>>(new Set());
+  const [isLoaded, setIsLoaded] = useState(false);
 
+  // Keep a ref in sync with the state so showTutorial always reads the
+  // latest value without needing to be recreated on every state change.
+  const seenRef = useRef(seenTutorials);
+  useEffect(() => { seenRef.current = seenTutorials; }, [seenTutorials]);
+  const isLoadedRef = useRef(isLoaded);
+  useEffect(() => { isLoadedRef.current = isLoaded; }, [isLoaded]);
+
+  const storageKey = user ? `@guidem_seen_tutorials_${user.id}` : `@guidem_seen_tutorials_guest`;
+
+  // 1. Clear active popup and reset loaded state on user logout or change
   useEffect(() => {
-    const loadSeen = async () => {
-      if (!user) {
-        setSeenTutorials(new Set());
-        setActiveTutorial(null);
-        return;
-      }
+    setActiveTutorial(null);
+    setIsLoaded(false);
+  }, [user]);
+
+  // 2. Load user-scoped seen status from AsyncStorage
+  useEffect(() => {
+    (async () => {
       try {
-        const stored = await AsyncStorage.getItem(`guidem_seen_tutorials_${user.id}`);
+        const stored = await AsyncStorage.getItem(storageKey);
         if (stored) {
-          setSeenTutorials(new Set(JSON.parse(stored)));
+          const parsed = JSON.parse(stored);
+          setSeenTutorials(parsed);
+          seenRef.current = parsed;
         } else {
-          setSeenTutorials(new Set());
+          setSeenTutorials({});
+          seenRef.current = {};
         }
       } catch (err) {
         console.error("Failed to load seen tutorials:", err);
+      } finally {
+        setIsLoaded(true);
+        isLoadedRef.current = true;
       }
-    };
-    loadSeen();
-  }, [user]);
+    })();
+  }, [storageKey]);
 
-  const showTutorial = async (id: string): Promise<boolean> => {
-    // If tutorial is not defined or already seen, ignore
-    if (!TUTORIALS[id] || seenTutorials.has(id)) {
-      return false;
-    }
+  // Stable reference — uses refs so it never goes stale on re-renders
+  const showTutorial = useCallback(async (id: string): Promise<boolean> => {
+    if (!isLoadedRef.current) return false;
+    if (seenRef.current[id]) return false;
 
-    // Set as active
-    setActiveTutorial(TUTORIALS[id]);
+    const step = getTutorialStep(id, t);
+    if (!step) return false;
+
+    setActiveTutorial(step);
     return true;
-  };
+  }, [t]);
 
   const dismissActiveTutorial = async () => {
-    if (!activeTutorial || !user) return;
+    if (!activeTutorial) return;
 
     const id = activeTutorial.id;
-    const nextSeen = new Set(seenTutorials);
-    nextSeen.add(id);
+    const updated = { ...seenTutorials, [id]: true };
 
-    setSeenTutorials(nextSeen);
+    setSeenTutorials(updated);
     setActiveTutorial(null);
 
     try {
-      await AsyncStorage.setItem(
-        `guidem_seen_tutorials_${user.id}`,
-        JSON.stringify(Array.from(nextSeen))
-      );
+      await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
     } catch (err) {
       console.error("Failed to save seen tutorial state:", err);
     }
   };
 
   const resetTutorials = async () => {
-    setSeenTutorials(new Set());
+    setSeenTutorials({});
     setActiveTutorial(null);
-    if (!user) return;
     try {
-      await AsyncStorage.removeItem(`guidem_seen_tutorials_${user.id}`);
+      await AsyncStorage.removeItem(storageKey);
     } catch (err) {
       console.error("Failed to reset tutorial state:", err);
     }

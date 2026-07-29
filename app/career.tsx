@@ -23,10 +23,13 @@ function priceLabel(a: Activity) {
   return a.priceAmount === 0 ? "Free" : `${a.priceCurrency}${a.priceAmount}`;
 }
 
+import { useLanguage } from "../hooks/LanguageContext";
+
 export default function CareerDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const { showTutorial } = useTutorial();
+  const { language, t } = useLanguage();
   const [career, setCareer] = useState<Career | null>(null);
   const [related, setRelated] = useState<Activity[]>([]);
   const [subCareers, setSubCareers] = useState<Career[]>([]);
@@ -48,14 +51,14 @@ export default function CareerDetail() {
     let isMounted = true;
     (async () => {
       const careerId = String(id);
-      const c = await getCareer(careerId);
+      const c = await getCareer(careerId, language);
       if (!isMounted) return;
       setCareer(c);
       if (c) {
         const [actRes, subRes, ancRes, savedIdsRes, profileRes] = await Promise.all([
-          getActivitiesForCareer(c.id),
-          getSubCareers(c.id),
-          getAncestorCareers(c.id),
+          getActivitiesForCareer(c.id, language),
+          getSubCareers(c.id, language),
+          getAncestorCareers(c.id, language),
           user ? getSavedIds(user.id, "career") : Promise.resolve([]),
           user ? getProfile(user.id) : Promise.resolve(null),
         ]);
@@ -73,7 +76,7 @@ export default function CareerDetail() {
     return () => {
       isMounted = false;
     };
-  }, [id, user]);
+  }, [id, user, language]);
 
   const toggleSaveCareer = async (targetCareer: Career) => {
     if (!user) {
@@ -181,7 +184,7 @@ export default function CareerDetail() {
 
         {/* Block 1: Career Description */}
         <Soft3DBlock
-          title="Career Overview"
+          title={t("career_overview")}
           iconName="document-text-outline"
           theme="blue"
           index={1}
@@ -191,18 +194,18 @@ export default function CareerDetail() {
 
         {/* Block 2: Salary & Earnings */}
         <Soft3DBlock
-          title="Salary & Earnings"
+          title={t("career_salary")}
           subtitle={salary}
           iconName="cash-outline"
           theme="green"
           index={2}
         >
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Estimated Range:</Text>
+            <Text style={styles.detailLabel}>{t("career_estimated_range")}</Text>
             <Text style={styles.detailValue}>{salary}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Job Market Demand:</Text>
+            <Text style={styles.detailLabel}>{t("career_job_demand")}</Text>
             <Text style={[styles.detailValue, { color: colors.button, fontFamily: fonts.bodyBold }]}>
               {career.demandLevel.replace(/_/g, " ")}
             </Text>
@@ -211,8 +214,8 @@ export default function CareerDetail() {
 
         {/* Block 3: Work Environment */}
         <Soft3DBlock
-          title="Work Environment"
-          subtitle="Typical workplace setup & atmosphere"
+          title={t("career_work_env")}
+          subtitle={t("career_work_env_sub")}
           iconName="business-outline"
           theme="teal"
           index={3}
@@ -229,8 +232,8 @@ export default function CareerDetail() {
 
           return (
             <Soft3DBlock
-              title="Contact a Professional"
-              subtitle="Connect with an industry mentor & ask career questions"
+              title={t("career_contact_pro")}
+              subtitle={t("career_contact_pro_sub")}
               iconName="people-outline"
               theme="teal"
               index={3.5}
@@ -253,7 +256,7 @@ export default function CareerDetail() {
                       onPress={() => Linking.openURL(contactValue)}
                     >
                       <Ionicons name="logo-linkedin" size={18} color="#0077b5" />
-                      <Text style={styles.proContactBtnText}>Connect on LinkedIn</Text>
+                      <Text style={styles.proContactBtnText}>{t("career_connect_linkedin")}</Text>
                     </Pressable>
                   ) : contactType === "email" ? (
                     <Pressable
@@ -261,7 +264,7 @@ export default function CareerDetail() {
                       onPress={() => Linking.openURL(`mailto:${contactValue}?subject=Question regarding ${career.title}`)}
                     >
                       <Ionicons name="mail-outline" size={18} color={colors.accent} />
-                      <Text style={styles.proContactBtnText}>Email: {contactValue}</Text>
+                      <Text style={styles.proContactBtnText}>{t("career_email_prefix")}{contactValue}</Text>
                     </Pressable>
                   ) : (
                     <Pressable
@@ -269,7 +272,7 @@ export default function CareerDetail() {
                       onPress={() => Linking.openURL(`tel:${contactValue.replace(/\s+/g, '')}`)}
                     >
                       <Ionicons name="call-outline" size={18} color="#16a34a" />
-                      <Text style={styles.proContactBtnText}>Call: {contactValue}</Text>
+                      <Text style={styles.proContactBtnText}>{t("career_call_prefix")}{contactValue}</Text>
                     </Pressable>
                   )}
                 </View>
@@ -280,13 +283,13 @@ export default function CareerDetail() {
 
         {/* Block 4: Required Education & Skills */}
         <Soft3DBlock
-          title="Education & Skills"
-          subtitle="Qualifications, subjects, and key competencies"
+          title={t("career_edu_skills")}
+          subtitle={t("career_edu_skills_sub")}
           iconName="school-outline"
           theme="blue"
           index={4}
         >
-          <Text style={styles.sectionHeading}>Required Education</Text>
+          <Text style={styles.sectionHeading}>{t("career_required_edu")}</Text>
           {career.requiredEducation.map((e) => (
             <View key={e} style={styles.bulletRow}>
               <Ionicons name="checkmark-circle-outline" size={16} color={colors.accent} style={{ marginRight: 8 }} />
@@ -294,7 +297,7 @@ export default function CareerDetail() {
             </View>
           ))}
 
-          <Text style={[styles.sectionHeading, { marginTop: 14 }]}>Key Skills</Text>
+          <Text style={[styles.sectionHeading, { marginTop: 14 }]}>{t("career_key_skills")}</Text>
           {career.requiredSkills.map((s) => (
             <View key={s} style={styles.bulletRow}>
               <Ionicons name="sparkles-outline" size={16} color="#8b5cf6" style={{ marginRight: 8 }} />
@@ -304,7 +307,7 @@ export default function CareerDetail() {
 
           {career.recommendedSubjects.length > 0 && (
             <>
-              <Text style={[styles.sectionHeading, { marginTop: 14 }]}>Recommended School Subjects</Text>
+              <Text style={[styles.sectionHeading, { marginTop: 14 }]}>{t("career_school_subjects")}</Text>
               {career.recommendedSubjects.map((sub) => (
                 <View key={sub} style={styles.bulletRow}>
                   <Ionicons name="book-outline" size={16} color="#107c8f" style={{ marginRight: 8 }} />
@@ -318,8 +321,8 @@ export default function CareerDetail() {
         {/* Block 5: Specializations */}
         {subCareers.length > 0 && (
           <Soft3DBlock
-            title="Available Specializations"
-            subtitle={`${subCareers.length} focus areas to explore`}
+            title={t("career_specializations")}
+            subtitle={`${subCareers.length}${t("career_focus_areas_suffix")}`}
             iconName="git-network-outline"
             theme="green"
             index={5}
@@ -372,8 +375,8 @@ export default function CareerDetail() {
         {/* Block 6: Related Activities */}
         {related.length > 0 && (
           <Soft3DBlock
-            title="Recommended Activities"
-            subtitle="Hands-on experiences for this career"
+            title={t("career_recommended_activities")}
+            subtitle={t("career_activities_sub")}
             iconName="sparkles-outline"
             theme="teal"
             index={6}

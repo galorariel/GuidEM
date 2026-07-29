@@ -11,6 +11,8 @@ import AnimatedGradientBackground from '../components/AnimatedGradientBackground
 import { TutorialProvider } from '../hooks/TutorialContext';
 import TutorialOverlay from '../components/TutorialOverlay';
 
+import { LanguageProvider } from '../hooks/LanguageContext';
+
 function RootLayoutNav() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -86,12 +88,14 @@ export default function RootLayout(){
 
   return (
     <AuthProvider>
-      <TutorialProvider>
-        <AnimatedGradientBackground>
-          <RootLayoutNav />
-          <TutorialOverlay />
-        </AnimatedGradientBackground>
-      </TutorialProvider>
+      <LanguageProvider>
+        <TutorialProvider>
+          <AnimatedGradientBackground>
+            <RootLayoutNav />
+            <TutorialOverlay />
+          </AnimatedGradientBackground>
+        </TutorialProvider>
+      </LanguageProvider>
     </AuthProvider>
   );
 }

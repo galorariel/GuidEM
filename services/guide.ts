@@ -161,6 +161,7 @@ export async function buildContext(userId: string, unitIndex: number): Promise<G
       city: profile?.city ?? "",
       school: profile?.school ?? "",
       majors: profile?.majors ?? [],
+      language: profile?.language ?? "en",
     },
     unitIndex,
     careerPath: profile?.career_path ?? [],

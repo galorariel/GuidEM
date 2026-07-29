@@ -5,8 +5,11 @@ import { Image } from "expo-image";
 import CustomButton from "../components/CustomButton";
 import LogoAnimation from "../components/LogoAnimation";
 import { colors, fonts } from "../constants/theme";
+import { useLanguage } from "../hooks/LanguageContext";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
 export default function WelcomeScreen() {
+  const { t } = useLanguage();
   const [animKey, setAnimKey] = useState(0);
 
   // Re-trigger logo animation every 20 seconds cleanly
@@ -38,23 +41,26 @@ export default function WelcomeScreen() {
           <LogoAnimation key={animKey} />
         </View>
 
-        <Text style={styles.title}>GuidEM</Text>
-        <Text style={styles.subtitle}>Discover. Grow. Build Your Future</Text>
+        <Text style={styles.title}>{t("welcome_title")}</Text>
+        <Text style={styles.subtitle}>{t("welcome_subtitle")}</Text>
 
         <View style={styles.buttonContainer}>
           <CustomButton
-            title="Sign Up"
+            title={t("welcome_sign_up")}
             onPress={() => router.push("/sign-up")}
             style={styles.signUpBtn}
             textStyle={{ color: "#ffffff" }}
           />
           <CustomButton
-            title="Sign In"
+            title={t("welcome_sign_in")}
             onPress={() => router.push("/sign-in")}
             style={styles.signInBtn}
             textStyle={{ color: "#ffffff" }}
           />
         </View>
+
+        {/* Language Switcher */}
+        <LanguageSwitcher />
       </View>
     </View>
   );

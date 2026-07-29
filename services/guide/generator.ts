@@ -31,6 +31,7 @@ export interface GenerateContext {
     city: string;
     school: string;
     majors: string[];
+    language?: string;
   };
   unitIndex: number;
   careerPath: string[];

@@ -157,10 +157,15 @@ async function callGemini(systemInstruction: string, prompt: string, apiKey: str
 async function generateUnit(ctx: any, apiKey: string) {
   const target = ctx.currentSpecialization ?? ctx.goalTitle;
   const majors = ctx.profile.majors?.length ? ctx.profile.majors.join(", ") : "general subjects";
+  const targetLang = ctx.profile?.language || "en";
+  const langName = targetLang === "he" ? "Hebrew" : targetLang === "ar" ? "Arabic" : "English";
 
   const systemInstruction = `You are GuidEM, a professional career coach and curriculum designer for high school students in Israel.
 Your task is to generate a personalized learning unit (roadmap) of 10 to 14 steps that builds the student's toolset for their chosen career and specialization, ALONG WITH the branching choice options for where their career path should go next after this unit is completed.
 You MUST personalize the path based on the student's location (city), current grade, school majors/subjects, Holland code personality type, and their previous path decisions.
+
+CRITICAL LANGUAGE REQUIREMENT:
+You MUST generate ALL text content (including unit "title", "summary", "journeySummary", step "title", step "body", "linkLabel", choice "prompt", option "label", and option "description") DIRECTLY in this target language: ${langName}. Do NOT use English if the target language is Hebrew or Arabic! (External https URLs should remain valid standard web URLs).
 
 Each step should include a real-world external link when appropriate (courses, video links, articles, documentation, LinkedIn queries, tutorials) so the student can open them externally on their phone.
 

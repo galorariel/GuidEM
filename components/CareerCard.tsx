@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "../constants/theme";
+import { useLanguage } from "../hooks/LanguageContext";
 
 type Props = {
   item: { id: string; title: string; description: string };
@@ -13,6 +14,8 @@ type Props = {
 };
 
 export default function CareerCard({ item, onPress, isSaved, onToggleSave, isGoal, onSetGoal }: Props) {
+  const { t } = useLanguage();
+
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <Text style={styles.title}>{item.title}</Text>
@@ -24,7 +27,7 @@ export default function CareerCard({ item, onPress, isSaved, onToggleSave, isGoa
             <Pressable onPress={onSetGoal} hitSlop={10} style={styles.actionButton}>
               <Ionicons name={isGoal ? "compass" : "compass-outline"} size={24} color={isGoal ? colors.button : colors.muted} />
               <Text style={[styles.actionText, { color: isGoal ? colors.button : colors.muted }]}>
-                {isGoal ? "Current Goal" : "Set Goal"}
+                {isGoal ? t("career_card_current_goal") : t("career_card_set_goal")}
               </Text>
             </Pressable>
           ) : null}
@@ -33,7 +36,7 @@ export default function CareerCard({ item, onPress, isSaved, onToggleSave, isGoa
             <Pressable onPress={onToggleSave} hitSlop={10} style={styles.actionButton}>
               <Ionicons name={isSaved ? "heart" : "heart-outline"} size={24} color={isSaved ? colors.accent : colors.muted} />
               <Text style={[styles.actionText, { color: isSaved ? colors.accent : colors.muted }]}>
-                {isSaved ? "Saved" : "Save"}
+                {isSaved ? t("career_card_saved") : t("career_card_save")}
               </Text>
             </Pressable>
           ) : null}

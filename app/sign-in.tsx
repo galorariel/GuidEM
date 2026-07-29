@@ -16,9 +16,11 @@ import { Image } from "expo-image";
 import CustomButton from "../components/CustomButton";
 import CustomInput from "../components/CustomInput";
 import { useAuth } from "../hooks/AuthContext";
+import { useLanguage } from "../hooks/LanguageContext";
 import { authErrorMessage } from "../services/authErrors";
 import { colors, fonts } from "../constants/theme";
 import { Ionicons } from "@expo/vector-icons";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HERO_HEIGHT = 250;
@@ -28,6 +30,7 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
+  const { t } = useLanguage();
 
   const handleSignIn = async () => {
     setLoading(true);
@@ -36,7 +39,7 @@ export default function SignIn() {
       router.replace("/(tabs)");
     } catch (err: any) {
       console.warn("Sign in error:", err?.message ?? err);
-      Alert.alert("Sign in failed", authErrorMessage(err, "Check your email and password."));
+      Alert.alert(t("alert_sign_in_failed"), authErrorMessage(err, t("alert_sign_in_failed_msg")));
     } finally {
       setLoading(false);
     }
@@ -75,29 +78,29 @@ export default function SignIn() {
 
         {/* Large Floating Content Card Overlapping Hero Image */}
         <View style={styles.floatingCard}>
-          <Text style={styles.h1}>Sign In</Text>
-          <Text style={styles.subtitle}>Sign in to continue your career journey</Text>
+          <Text style={styles.h1}>{t("sign_in_title")}</Text>
+          <Text style={styles.subtitle}>{t("sign_in_subtitle")}</Text>
 
           <View style={styles.formContainer}>
             <CustomInput
-              label="Email"
+              label={t("email_label")}
               value={email}
               onChangeText={setEmail}
-              placeholder="name@example.com"
+              placeholder={t("email_placeholder")}
               keyboardType="email-address"
               autoCapitalize="none"
             />
             <CustomInput
-              label="Password"
+              label={t("password_label")}
               value={password}
               onChangeText={setPassword}
-              placeholder="••••••••"
+              placeholder={t("password_placeholder")}
               secureTextEntry
               autoCapitalize="none"
             />
 
             <CustomButton
-              title={loading ? "Signing in…" : "Sign In"}
+              title={loading ? t("signing_in") : t("sign_in_btn")}
               onPress={handleSignIn}
               disabled={loading || !email.trim() || !password.trim()}
               style={styles.signInBtn}
@@ -106,11 +109,12 @@ export default function SignIn() {
             {loading && <ActivityIndicator style={{ marginTop: 12 }} color={colors.accent} />}
 
             <View style={styles.footerRow}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
+              <Text style={styles.footerText}>{t("dont_have_account")}{" "}</Text>
               <Pressable onPress={() => router.push("/sign-up")}>
-                <Text style={styles.signUpLink}>Sign Up</Text>
+                <Text style={styles.signUpLink}>{t("sign_up_btn")}</Text>
               </Pressable>
             </View>
+            <LanguageSwitcher />
           </View>
         </View>
       </ScrollView>

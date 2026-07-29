@@ -7,8 +7,11 @@ import { getProfile } from "../../services/supabase";
 
 import { View } from "react-native";
 
+import { useLanguage } from "../../hooks/LanguageContext";
+
 export default function TabsLayout() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,7 +56,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Guide",
+          title: t("tab_guide"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="compass-outline" color={color} size={size} />
           ),
@@ -63,7 +66,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: "Search",
+          title: t("tab_browse"),
           href: isParent ? null : undefined, // Hide Search tab for Parent accounts
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="search-outline" color={color} size={size} />
@@ -74,7 +77,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="questionnaire"
         options={{
-          title: "Questionnaire",
+          title: t("tab_quiz"),
           href: isParent ? null : undefined, // Hide Questionnaire tab for Parent accounts
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="clipboard-outline" color={color} size={size} />
@@ -85,7 +88,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: t("tab_profile"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" color={color} size={size} />
           ),

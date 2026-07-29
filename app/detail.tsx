@@ -10,10 +10,13 @@ import { getActivity, type Activity } from "../services/catalog";
 import { addSaved, getProfile, getSavedActivityIds, removeSaved } from "../services/supabase";
 import { useTutorial } from "../hooks/TutorialContext";
 
+import { useLanguage } from "../hooks/LanguageContext";
+
 export default function Detail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const { showTutorial } = useTutorial();
+  const { language, t } = useLanguage();
   const [activity, setActivity] = useState<Activity | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [role, setRole] = useState<string | null>(null);
@@ -27,7 +30,7 @@ export default function Detail() {
 
   useEffect(() => {
     (async () => {
-      const a = await getActivity(String(id));
+      const a = await getActivity(String(id), language);
       setActivity(a);
       if (user && a) {
         const [ids, p] = await Promise.all([
@@ -40,7 +43,7 @@ export default function Detail() {
       }
       setLoading(false);
     })();
-  }, [id, user]);
+  }, [id, user, language]);
 
   const toggleSave = async () => {
     if (!activity) return;
@@ -117,7 +120,7 @@ export default function Detail() {
 
         {/* Block 1: Activity Overview */}
         <Soft3DBlock
-          title="Activity Overview"
+          title={t("activity_overview")}
           iconName="document-text-outline"
           theme="blue"
           index={1}
@@ -127,32 +130,32 @@ export default function Detail() {
 
         {/* Block 2: Location & Event Format */}
         <Soft3DBlock
-          title="Location & Event Format"
+          title={t("activity_location_format")}
           subtitle={activity.location}
           iconName="location-outline"
           theme="teal"
           index={2}
         >
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Venue / Location:</Text>
+            <Text style={styles.detailLabel}>{t("activity_venue")}</Text>
             <Text style={styles.detailValue}>{activity.location}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Category:</Text>
+            <Text style={styles.detailLabel}>{t("activity_category_label")}</Text>
             <Text style={styles.detailValue}>{activity.category}</Text>
           </View>
         </Soft3DBlock>
 
         {/* Block 3: Pricing & Access */}
         <Soft3DBlock
-          title="Pricing & Access"
-          subtitle={`Cost: ${price}`}
+          title={t("activity_pricing")}
+          subtitle={`${t("activity_cost_prefix")}${price}`}
           iconName="pricetag-outline"
           theme="green"
           index={3}
         >
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Registration Fee:</Text>
+            <Text style={styles.detailLabel}>{t("activity_registration_fee")}</Text>
             <Text style={[styles.detailValue, { color: colors.button }]}>{price}</Text>
           </View>
         </Soft3DBlock>
