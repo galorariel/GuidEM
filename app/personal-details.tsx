@@ -61,7 +61,7 @@ export default function PersonalDetails() {
 
   if (!user) return null;
 
-  const name = (user.user_metadata?.full_name as string) || "Student";
+  const name = (user.user_metadata?.full_name as string) || t("role_student");
 
   const handleSave = async () => {
     setSaving(true);
@@ -74,7 +74,7 @@ export default function PersonalDetails() {
       });
       Alert.alert(t("success_title"), t("saved_success"));
     } catch (err: any) {
-      Alert.alert("Couldn't save", authErrorMessage(err, "Please try again."));
+      Alert.alert(t("alert_save_failed"), authErrorMessage(err, t("alert_try_again")));
     } finally {
       setSaving(false);
     }
@@ -82,7 +82,7 @@ export default function PersonalDetails() {
 
   const personalityLabel = profile?.personality_type
     ? profile.personality_type.charAt(0).toUpperCase() + profile.personality_type.slice(1)
-    : "Not taken yet";
+    : t("not_taken_yet");
 
   if (loading) {
     return (
@@ -182,13 +182,13 @@ export default function PersonalDetails() {
             label={t("school_label")} 
             value={school} 
             onChangeText={setSchool} 
-            placeholder="School name" 
+            placeholder={t("school_placeholder")} 
           />
           <CustomInput 
             label={t("city_label")} 
             value={city} 
             onChangeText={setCity} 
-            placeholder="Tel Aviv" 
+            placeholder={t("city_placeholder")} 
           />
           <GradeSelector 
             value={gradeLevel} 

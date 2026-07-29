@@ -11,11 +11,11 @@ const LANGUAGE_OPTIONS: { code: Language; label: string }[] = [
 ];
 
 export default function LanguageSwitcher() {
-  const { language, changeLanguage } = useLanguage();
+  const { language, changeLanguage, t } = useLanguage();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Language</Text>
+      <Text style={styles.label}>{t("language_label")}</Text>
       <View style={styles.row}>
         {LANGUAGE_OPTIONS.map((opt) => {
           const isActive = language === opt.code;

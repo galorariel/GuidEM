@@ -78,12 +78,12 @@ export default function SignUp() {
       if (res?.session) {
         router.replace("/(tabs)");
       } else {
-        Alert.alert("Confirm Email", "Please check your inbox and confirm your email address.");
+        Alert.alert(t("alert_confirm_email"), t("alert_confirm_email_msg"));
         router.replace("/sign-in");
       }
     } catch (err: any) {
       console.warn("Sign up error:", err?.message ?? err);
-      Alert.alert("Sign Up Failed", authErrorMessage(err, "Could not create account."));
+      Alert.alert(t("alert_sign_up_failed"), authErrorMessage(err, t("alert_sign_up_failed_msg")));
     } finally {
       setLoading(false);
     }
@@ -175,13 +175,13 @@ export default function SignUp() {
                   label={t("school_label")}
                   value={school}
                   onChangeText={setSchool}
-                  placeholder="School name"
+                  placeholder={t("school_placeholder")}
                 />
                 <CustomInput
                   label={t("city_label")}
                   value={city}
                   onChangeText={setCity}
-                  placeholder="Tel Aviv"
+                  placeholder={t("city_placeholder")}
                 />
                 <GradeSelector
                   value={grade}
@@ -197,7 +197,7 @@ export default function SignUp() {
             )}
 
             {/* Preferred Language */}
-            <Text style={[styles.selectorLabel, { marginTop: 16 }]}>Preferred Language</Text>
+            <Text style={[styles.selectorLabel, { marginTop: 16 }]}>{t("preferred_language")}</Text>
             <View style={styles.segment}>
               {LANG_OPTIONS.map((opt) => {
                 const isActive = preferredLang === opt.code;

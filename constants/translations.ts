@@ -41,6 +41,10 @@ export const translations = {
     alert_confirm_email_msg: "We sent you a confirmation link. Please verify your email, then sign in.",
     alert_sign_up_failed: "Sign up failed",
     alert_sign_up_failed_msg: "Check your input.",
+    school_placeholder: "School name",
+    city_placeholder: "e.g. Tel Aviv",
+    preferred_language: "Preferred Language",
+    language_label: "Language",
 
     // Guide Tab / Dashboard
     guide_title: "Learning Path",
@@ -221,6 +225,9 @@ export const translations = {
     details_label_role: "Role",
     details_label_personality: "Personality Type",
     details_label_saving: "Saving...",
+    not_taken_yet: "Not taken yet",
+    alert_save_failed: "Couldn't save",
+    alert_try_again: "Please try again.",
     details_qa_majors: "Majors in school",
     details_qa_career_in_mind: "Career in mind",
     details_qa_hobbies: "Hobbies & interests",
@@ -393,6 +400,10 @@ export const translations = {
     alert_confirm_email_msg: "שלחנו קישור אימות לדוא״ל שלך. אמת את החשבון ואז להתחבר.",
     alert_sign_up_failed: "ההרשמה שנכשלה",
     alert_sign_up_failed_msg: "בדוק את הפרטים שהזנת.",
+    school_placeholder: "שם בית הספר",
+    city_placeholder: "למשל תל אביב",
+    preferred_language: "שפה מועדפת",
+    language_label: "שפה",
 
     // Guide Tab / Dashboard
     guide_title: "מסלול למידה",
@@ -573,6 +584,9 @@ export const translations = {
     details_label_role: "תפקיד",
     details_label_personality: "טיפוס אישיות",
     details_label_saving: "שומר...",
+    not_taken_yet: "טרם נעשה",
+    alert_save_failed: "השמירה נכשלה",
+    alert_try_again: "נא לנסות שוב.",
     details_qa_majors: "מגמות בבית הספר",
     details_qa_career_in_mind: "קריירה מכוונת",
     details_qa_hobbies: "תחביבים ותחומי עניין",
@@ -745,6 +759,10 @@ export const translations = {
     alert_confirm_email_msg: "أرسلنا رابط التأكيد إلى بريدك. يرجى التأكيد ثم الدخول.",
     alert_sign_up_failed: "فشل إنشاء الحساب",
     alert_sign_up_failed_msg: "تحقق من البيانات المدخلة.",
+    school_placeholder: "اسم المدرسة",
+    city_placeholder: "مثلاً تل أبيب",
+    preferred_language: "اللغة المفضلة",
+    language_label: "اللغة",
 
     // Guide Tab / Dashboard
     guide_title: "مسار التعلم",
@@ -925,6 +943,9 @@ export const translations = {
     details_label_role: "الدور",
     details_label_personality: "نوع الشخصية",
     details_label_saving: "جاري الحفظ...",
+    not_taken_yet: "لم يتم بعد",
+    alert_save_failed: "تعذر الحفظ",
+    alert_try_again: "يرجى المحاولة مرة أخرى.",
     details_qa_majors: "التخصصات المدرسية",
     details_qa_career_in_mind: "المهنة المرغوبة",
     details_qa_hobbies: "الهوايات والاهتمامات",

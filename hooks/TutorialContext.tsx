@@ -136,6 +136,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
 
     const id = activeTutorial.id;
     const updated = { ...seenTutorials, [id]: true };
+    seenRef.current = updated;
 
     setSeenTutorials(updated);
     setActiveTutorial(null);
