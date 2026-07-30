@@ -85,9 +85,9 @@ export default function CareerSwipeDeck({
   const [deck, setDeck] = useState<Career[]>(careers);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // Dense particle bubble emitter state
+  // Decoupled Particle Emitter System
   const [particles, setParticles] = useState<Particle[]>([]);
-  const lastSpawnTime = useRef(0);
+  const gestureDxRef = useRef(0);
 
   // Ref map to store individual Animated.ValueXY for each card ID to eliminate pop-in glitches
   const pansRef = useRef<Record<string, Animated.ValueXY>>({});
@@ -106,7 +106,24 @@ export default function CareerSwipeDeck({
     setHistory([]);
     pansRef.current = {};
     setParticles([]);
+    gestureDxRef.current = 0;
   }, [careersKey]);
+
+  // Decoupled Background Emitter Loop (Runs independently of gesture events to prevent card motion stutter)
+  useEffect(() => {
+    const emitterInterval = setInterval(() => {
+      const dx = gestureDxRef.current;
+      const absX = Math.abs(dx);
+
+      if (absX < SWIPE_THRESHOLD * 0.12) return;
+
+      const progress = Math.min(1, absX / SWIPE_THRESHOLD);
+      const batchCount = progress > 0.5 ? 3 : 2;
+      spawnParticlesBatch(dx > 0 ? "heart" : "cross", batchCount);
+    }, 40);
+
+    return () => clearInterval(emitterInterval);
+  }, []);
 
   // Subtle Idle Floating animation for active top card
   const idleAnim = useRef(new Animated.Value(0)).current;
@@ -194,6 +211,7 @@ export default function CareerSwipeDeck({
   };
 
   const resetPosition = () => {
+    gestureDxRef.current = 0;
     const targetPan = activePanRef.current;
     Animated.spring(targetPan, {
       toValue: { x: 0, y: 0 },
@@ -203,6 +221,7 @@ export default function CareerSwipeDeck({
   };
 
   const swipe = (direction: SwipeDirection) => {
+    gestureDxRef.current = 0;
     const targetCareer = currentCareerRef.current;
     const targetPan = activePanRef.current;
     if (!targetCareer) return;
@@ -241,7 +260,7 @@ export default function CareerSwipeDeck({
     });
   };
 
-  // PanResponder gesture setup for active top card
+  // PanResponder gesture setup for active top card (Fully decoupled from particle setState!)
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -250,20 +269,12 @@ export default function CareerSwipeDeck({
         idleLoopRef.current?.stop();
       },
       onPanResponderMove: (e, gestureState) => {
+        // Pure high-performance pan value update (ZERO React state re-renders!)
         activePanRef.current.setValue({ x: gestureState.dx, y: gestureState.dy });
-
-        // Continuous high-density bubble emission during drag
-        const now = Date.now();
-        const absX = Math.abs(gestureState.dx);
-        const progress = Math.min(1, absX / SWIPE_THRESHOLD);
-
-        if (progress > 0.08 && now - lastSpawnTime.current > Math.max(30, 110 - progress * 80)) {
-          lastSpawnTime.current = now;
-          const batchCount = progress > 0.5 ? 3 : 2;
-          spawnParticlesBatch(gestureState.dx > 0 ? "heart" : "cross", batchCount);
-        }
+        gestureDxRef.current = gestureState.dx;
       },
       onPanResponderRelease: (_, gestureState) => {
+        gestureDxRef.current = 0;
         idleLoopRef.current?.start();
 
         if (gestureState.dx > SWIPE_THRESHOLD) {
@@ -316,6 +327,7 @@ export default function CareerSwipeDeck({
     setHistory([]);
     pansRef.current = {};
     setParticles([]);
+    gestureDxRef.current = 0;
   };
 
   // Top Active Card Rotations & Badges based on its dedicated activePan value
