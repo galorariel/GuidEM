@@ -342,19 +342,6 @@ export default function CareerSwipeDeck({
     extrapolate: "clamp",
   });
 
-  // Screen Edge Full-Height Glow Interpolations (Flushed to true screen edge, shining inward towards card)
-  const rightEdgeOpacity = activePan.x.interpolate({
-    inputRange: [0, SWIPE_THRESHOLD * 0.3, SWIPE_THRESHOLD, SCREEN_WIDTH * 1.2],
-    outputRange: [0, 0.45, 0.95, 0],
-    extrapolate: "clamp",
-  });
-
-  const leftEdgeOpacity = activePan.x.interpolate({
-    inputRange: [-SCREEN_WIDTH * 1.2, -SWIPE_THRESHOLD, -SWIPE_THRESHOLD * 0.3, 0],
-    outputRange: [0, 0.95, 0.45, 0],
-    extrapolate: "clamp",
-  });
-
   // Stack Depth Physical Card Pile Mechanics (Cards 2 & 3 peek out with distinct rotation angles & offsets)
   const card2Rotate = activePan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
@@ -529,18 +516,6 @@ export default function CareerSwipeDeck({
 
   return (
     <View style={styles.container}>
-      {/* RIGHT FULL-HEIGHT SCREEN EDGE GLOW (Green for Save, Pinned to true screen right edge, emitting glow INWARD towards card) */}
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.rightEdgeGlow, { opacity: rightEdgeOpacity }]}
-      />
-
-      {/* LEFT FULL-HEIGHT SCREEN EDGE GLOW (Red for Skip, Pinned to true screen left edge, emitting glow INWARD towards card) */}
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.leftEdgeGlow, { opacity: leftEdgeOpacity }]}
-      />
-
       {/* HIGH-DENSITY PARTICLE BUBBLE EMITTER LAYER (Emitting directly from screen edges INWARD towards card) */}
       <View style={styles.particleContainer} pointerEvents="none">
         {particles.map((p) => {
@@ -863,36 +838,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: fonts.heading,
     color: "#ef4444",
-  },
-  rightEdgeGlow: {
-    position: "absolute",
-    right: -22, // Flushed directly to true screen right boundary (negating parent padding)
-    top: -120,
-    bottom: -120,
-    width: 54,
-    backgroundColor: "rgba(16, 185, 129, 0.22)",
-    borderLeftWidth: 4,
-    borderLeftColor: "rgba(16, 185, 129, 0.75)",
-    shadowColor: "#10b981",
-    shadowOffset: { width: -12, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 24,
-    zIndex: 85,
-  },
-  leftEdgeGlow: {
-    position: "absolute",
-    left: -22, // Flushed directly to true screen left boundary (negating parent padding)
-    top: -120,
-    bottom: -120,
-    width: 54,
-    backgroundColor: "rgba(239, 68, 68, 0.22)",
-    borderRightWidth: 4,
-    borderRightColor: "rgba(239, 68, 68, 0.75)",
-    shadowColor: "#ef4444",
-    shadowOffset: { width: 12, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 24,
-    zIndex: 85,
   },
   particleContainer: {
     position: "absolute",
