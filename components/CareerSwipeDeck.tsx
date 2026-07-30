@@ -49,6 +49,120 @@ type Particle = {
   anim: Animated.Value;
 };
 
+// Isolated Sub-component to manage particle state independently without causing parent CareerSwipeDeck re-renders
+const ParticleEmitterOverlay = React.memo(({ gestureDxRef }: { gestureDxRef: React.MutableRefObject<number> }) => {
+  const [particles, setParticles] = useState<Particle[]>([]);
+
+  const spawnParticlesBatch = (type: "heart" | "cross", count: number = 2) => {
+    const newBatch: Particle[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const id = Math.random().toString(36).substring(2, 9);
+      const topPct = 2 + Math.random() * 92; // Full height distribution from top to bottom
+      const scale = 0.55 + Math.random() * 0.7; // Rich size variation
+      const rotationDeg = `${Math.floor(Math.random() * 34 - 17)}deg`;
+      const driftX = 35 + Math.random() * 35; // Drift inward towards card
+      const driftY = 25 + Math.random() * 35; // Drift upward like floating bubbles
+      const anim = new Animated.Value(0);
+
+      const particle: Particle = {
+        id,
+        type,
+        topPct,
+        scale,
+        rotationDeg,
+        driftX,
+        driftY,
+        anim,
+      };
+
+      newBatch.push(particle);
+
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 600 + Math.random() * 350,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: false,
+      }).start(() => {
+        setParticles((prev) => prev.filter((p) => p.id !== id));
+      });
+    }
+
+    setParticles((prev) => [...prev.slice(-28), ...newBatch]); // high capacity for dense bubble streams
+  };
+
+  useEffect(() => {
+    const emitterInterval = setInterval(() => {
+      const dx = gestureDxRef.current;
+      const absX = Math.abs(dx);
+
+      if (absX < SWIPE_THRESHOLD * 0.12) return;
+
+      const progress = Math.min(1, absX / SWIPE_THRESHOLD);
+      const batchCount = progress > 0.5 ? 3 : 2;
+      spawnParticlesBatch(dx > 0 ? "heart" : "cross", batchCount);
+    }, 45);
+
+    return () => clearInterval(emitterInterval);
+  }, []);
+
+  return (
+    <View style={styles.particleContainer} pointerEvents="none">
+      {particles.map((p) => {
+        const isRight = p.type === "heart";
+
+        // Drift inward towards center card
+        const translateX = p.anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, isRight ? -p.driftX : p.driftX],
+        });
+
+        // Drift upward like floating bubbles
+        const translateY = p.anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -p.driftY],
+        });
+
+        const particleScale = p.anim.interpolate({
+          inputRange: [0, 0.25, 0.7, 1],
+          outputRange: [0.3, p.scale * 1.3, p.scale, 0.4],
+        });
+
+        const opacity = p.anim.interpolate({
+          inputRange: [0, 0.15, 0.65, 1],
+          outputRange: [0, 0.95, 0.85, 0],
+        });
+
+        return (
+          <Animated.View
+            key={p.id}
+            style={[
+              styles.particleBase,
+              isRight ? { right: -18 } : { left: -18 },
+              {
+                top: `${p.topPct}%`,
+                opacity,
+                transform: [
+                  { translateX },
+                  { translateY },
+                  { scale: particleScale },
+                  { rotate: p.rotationDeg },
+                ],
+              },
+            ]}
+          >
+            <Ionicons
+              name={isRight ? "heart" : "close"}
+              size={18}
+              color={isRight ? "#10b981" : "#ef4444"}
+            />
+          </Animated.View>
+        );
+      })}
+    </View>
+  );
+});
+
 // Helper: Calculate Holland code match percentage
 function getMatchScore(userType: string | null | undefined, careerCodes: string[] | undefined): number | null {
   if (!userType || !careerCodes || careerCodes.length === 0) return null;
@@ -85,8 +199,7 @@ export default function CareerSwipeDeck({
   const [deck, setDeck] = useState<Career[]>(careers);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // Decoupled Particle Emitter System
-  const [particles, setParticles] = useState<Particle[]>([]);
+  // Mutable gesture Dx Ref passed to isolated ParticleEmitterOverlay
   const gestureDxRef = useRef(0);
 
   // Ref map to store individual Animated.ValueXY for each card ID to eliminate pop-in glitches
@@ -105,25 +218,8 @@ export default function CareerSwipeDeck({
     setDeck(careers);
     setHistory([]);
     pansRef.current = {};
-    setParticles([]);
     gestureDxRef.current = 0;
   }, [careersKey]);
-
-  // Decoupled Background Emitter Loop (Runs independently of gesture events to prevent card motion stutter)
-  useEffect(() => {
-    const emitterInterval = setInterval(() => {
-      const dx = gestureDxRef.current;
-      const absX = Math.abs(dx);
-
-      if (absX < SWIPE_THRESHOLD * 0.12) return;
-
-      const progress = Math.min(1, absX / SWIPE_THRESHOLD);
-      const batchCount = progress > 0.5 ? 3 : 2;
-      spawnParticlesBatch(dx > 0 ? "heart" : "cross", batchCount);
-    }, 40);
-
-    return () => clearInterval(emitterInterval);
-  }, []);
 
   // Subtle Idle Floating animation for active top card
   const idleAnim = useRef(new Animated.Value(0)).current;
@@ -170,45 +266,6 @@ export default function CareerSwipeDeck({
 
   const onToggleSaveRef = useRef(onToggleSave);
   onToggleSaveRef.current = onToggleSave;
-
-  // Dense particle spawner logic emitting directly from the true screen edge towards the center card
-  const spawnParticlesBatch = (type: "heart" | "cross", count: number = 2) => {
-    const newBatch: Particle[] = [];
-
-    for (let i = 0; i < count; i++) {
-      const id = Math.random().toString(36).substring(2, 9);
-      const topPct = 2 + Math.random() * 92; // Full height distribution from top to bottom
-      const scale = 0.55 + Math.random() * 0.7; // Rich size variation
-      const rotationDeg = `${Math.floor(Math.random() * 34 - 17)}deg`;
-      const driftX = 35 + Math.random() * 35; // Drift inward towards card
-      const driftY = 25 + Math.random() * 35; // Drift upward like floating bubbles
-      const anim = new Animated.Value(0);
-
-      const particle: Particle = {
-        id,
-        type,
-        topPct,
-        scale,
-        rotationDeg,
-        driftX,
-        driftY,
-        anim,
-      };
-
-      newBatch.push(particle);
-
-      Animated.timing(anim, {
-        toValue: 1,
-        duration: 600 + Math.random() * 350,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: false,
-      }).start(() => {
-        setParticles((prev) => prev.filter((p) => p.id !== id));
-      });
-    }
-
-    setParticles((prev) => [...prev.slice(-35), ...newBatch]); // high capacity for dense bubble streams
-  };
 
   const resetPosition = () => {
     gestureDxRef.current = 0;
@@ -326,7 +383,6 @@ export default function CareerSwipeDeck({
     setDeck(careers);
     setHistory([]);
     pansRef.current = {};
-    setParticles([]);
     gestureDxRef.current = 0;
   };
 
@@ -528,60 +584,8 @@ export default function CareerSwipeDeck({
 
   return (
     <View style={styles.container}>
-      {/* HIGH-DENSITY PARTICLE BUBBLE EMITTER LAYER (Emitting directly from screen edges INWARD towards card) */}
-      <View style={styles.particleContainer} pointerEvents="none">
-        {particles.map((p) => {
-          const isRight = p.type === "heart";
-
-          // Drift inward towards center card (negative X for right edge, positive X for left edge)
-          const translateX = p.anim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, isRight ? -p.driftX : p.driftX],
-          });
-
-          // Drift upward like floating bubbles
-          const translateY = p.anim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, -p.driftY],
-          });
-
-          const particleScale = p.anim.interpolate({
-            inputRange: [0, 0.25, 0.7, 1],
-            outputRange: [0.3, p.scale * 1.3, p.scale, 0.4],
-          });
-
-          const opacity = p.anim.interpolate({
-            inputRange: [0, 0.15, 0.65, 1],
-            outputRange: [0, 0.95, 0.85, 0],
-          });
-
-          return (
-            <Animated.View
-              key={p.id}
-              style={[
-                styles.particleBase,
-                isRight ? { right: -18 } : { left: -18 },
-                {
-                  top: `${p.topPct}%`,
-                  opacity,
-                  transform: [
-                    { translateX },
-                    { translateY },
-                    { scale: particleScale },
-                    { rotate: p.rotationDeg },
-                  ],
-                },
-              ]}
-            >
-              <Ionicons
-                name={isRight ? "heart" : "close"}
-                size={18}
-                color={isRight ? "#10b981" : "#ef4444"}
-              />
-            </Animated.View>
-          );
-        })}
-      </View>
+      {/* ISOLATED PARTICLE BUBBLE EMITTER OVERLAY (Re-renders independently without triggering parent deck re-renders!) */}
+      <ParticleEmitterOverlay gestureDxRef={gestureDxRef} />
 
       {/* Outer Card Deck Container with Height Padding for Stack */}
       <View style={styles.deckContainer}>
