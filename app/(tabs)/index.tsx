@@ -314,15 +314,15 @@ export default function Guide() {
 
   // ---- Student loader --------------------------------------------------------
   const loadGuide = useCallback(async (userId: string, isSilent = false) => {
-    if (!isSilent) {
-      setGuideLoading(true);
-    }
     setGuideError(false);
     try {
       // Check existing units first so we know if this is a fresh generation
       const existing = await getGuideUnits(userId);
       if (existing.length === 0) {
         setUnits([]);
+        setGuideLoading(true);
+      } else if (!isSilent) {
+        setGuideLoading(true);
       }
       
       await ensureFirstUnit(userId);
@@ -347,7 +347,7 @@ export default function Guide() {
       }
     } catch (err: any) {
       console.warn("Guide load error:", err?.message ?? err);
-      if (!isSilent) setGuideError(true);
+      setGuideError(true);
     } finally {
       setGuideLoading(false);
     }
