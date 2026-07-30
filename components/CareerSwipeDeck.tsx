@@ -85,7 +85,7 @@ export default function CareerSwipeDeck({
   const [deck, setDeck] = useState<Career[]>(careers);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // Dynamic particle emitter state for floating bubble icons along full screen edge
+  // Dense particle bubble emitter state
   const [particles, setParticles] = useState<Particle[]>([]);
   const lastSpawnTime = useRef(0);
 
@@ -154,37 +154,43 @@ export default function CareerSwipeDeck({
   const onToggleSaveRef = useRef(onToggleSave);
   onToggleSaveRef.current = onToggleSave;
 
-  // Dynamic particle spawner logic
-  const spawnParticle = (type: "heart" | "cross") => {
-    const id = Math.random().toString(36).substring(2, 9);
-    const topPct = 5 + Math.random() * 85; // Spawns across entire height of screen edge (5% to 90%)
-    const scale = 0.6 + Math.random() * 0.65; // Size variation (0.6x to 1.25x)
-    const rotationDeg = `${Math.floor(Math.random() * 30 - 15)}deg`; // Slight rotation variation (-15deg to +15deg)
-    const driftX = 25 + Math.random() * 25; // Drift gently inward towards center
-    const driftY = 35 + Math.random() * 25; // Drift gently upward
-    const anim = new Animated.Value(0);
+  // Dense particle spawner logic emitting directly from the true screen edge towards the center card
+  const spawnParticlesBatch = (type: "heart" | "cross", count: number = 2) => {
+    const newBatch: Particle[] = [];
 
-    const newParticle: Particle = {
-      id,
-      type,
-      topPct,
-      scale,
-      rotationDeg,
-      driftX,
-      driftY,
-      anim,
-    };
+    for (let i = 0; i < count; i++) {
+      const id = Math.random().toString(36).substring(2, 9);
+      const topPct = 2 + Math.random() * 92; // Full height distribution from top to bottom
+      const scale = 0.55 + Math.random() * 0.7; // Rich size variation
+      const rotationDeg = `${Math.floor(Math.random() * 34 - 17)}deg`;
+      const driftX = 35 + Math.random() * 35; // Drift inward towards card
+      const driftY = 25 + Math.random() * 35; // Drift upward like floating bubbles
+      const anim = new Animated.Value(0);
 
-    setParticles((prev) => [...prev.slice(-18), newParticle]);
+      const particle: Particle = {
+        id,
+        type,
+        topPct,
+        scale,
+        rotationDeg,
+        driftX,
+        driftY,
+        anim,
+      };
 
-    Animated.timing(anim, {
-      toValue: 1,
-      duration: 650 + Math.random() * 350,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: false,
-    }).start(() => {
-      setParticles((prev) => prev.filter((p) => p.id !== id));
-    });
+      newBatch.push(particle);
+
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 600 + Math.random() * 350,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: false,
+      }).start(() => {
+        setParticles((prev) => prev.filter((p) => p.id !== id));
+      });
+    }
+
+    setParticles((prev) => [...prev.slice(-35), ...newBatch]); // high capacity for dense bubble streams
   };
 
   const resetPosition = () => {
@@ -246,14 +252,15 @@ export default function CareerSwipeDeck({
       onPanResponderMove: (e, gestureState) => {
         activePanRef.current.setValue({ x: gestureState.dx, y: gestureState.dy });
 
-        // Dynamic particle emission scaling with swipe progress
+        // Continuous high-density bubble emission during drag
         const now = Date.now();
         const absX = Math.abs(gestureState.dx);
         const progress = Math.min(1, absX / SWIPE_THRESHOLD);
 
-        if (progress > 0.18 && now - lastSpawnTime.current > Math.max(60, 170 - progress * 110)) {
+        if (progress > 0.08 && now - lastSpawnTime.current > Math.max(30, 110 - progress * 80)) {
           lastSpawnTime.current = now;
-          spawnParticle(gestureState.dx > 0 ? "heart" : "cross");
+          const batchCount = progress > 0.5 ? 3 : 2;
+          spawnParticlesBatch(gestureState.dx > 0 ? "heart" : "cross", batchCount);
         }
       },
       onPanResponderRelease: (_, gestureState) => {
@@ -335,16 +342,16 @@ export default function CareerSwipeDeck({
     extrapolate: "clamp",
   });
 
-  // Screen Edge Full-Height Glow Interpolations (Disappears gracefully on rest / fly-out)
+  // Screen Edge Full-Height Glow Interpolations (Flushed to true screen edge, shining inward towards card)
   const rightEdgeOpacity = activePan.x.interpolate({
-    inputRange: [0, SWIPE_THRESHOLD * 0.4, SWIPE_THRESHOLD, SCREEN_WIDTH * 1.2],
-    outputRange: [0, 0.4, 0.9, 0],
+    inputRange: [0, SWIPE_THRESHOLD * 0.3, SWIPE_THRESHOLD, SCREEN_WIDTH * 1.2],
+    outputRange: [0, 0.45, 0.95, 0],
     extrapolate: "clamp",
   });
 
   const leftEdgeOpacity = activePan.x.interpolate({
-    inputRange: [-SCREEN_WIDTH * 1.2, -SWIPE_THRESHOLD, -SWIPE_THRESHOLD * 0.4, 0],
-    outputRange: [0, 0.9, 0.4, 0],
+    inputRange: [-SCREEN_WIDTH * 1.2, -SWIPE_THRESHOLD, -SWIPE_THRESHOLD * 0.3, 0],
+    outputRange: [0, 0.95, 0.45, 0],
     extrapolate: "clamp",
   });
 
@@ -522,40 +529,42 @@ export default function CareerSwipeDeck({
 
   return (
     <View style={styles.container}>
-      {/* RIGHT FULL-HEIGHT SCREEN EDGE GLOW (Green for Save) */}
+      {/* RIGHT FULL-HEIGHT SCREEN EDGE GLOW (Green for Save, Pinned to true screen right edge, emitting glow INWARD towards card) */}
       <Animated.View
         pointerEvents="none"
         style={[styles.rightEdgeGlow, { opacity: rightEdgeOpacity }]}
       />
 
-      {/* LEFT FULL-HEIGHT SCREEN EDGE GLOW (Red for Skip) */}
+      {/* LEFT FULL-HEIGHT SCREEN EDGE GLOW (Red for Skip, Pinned to true screen left edge, emitting glow INWARD towards card) */}
       <Animated.View
         pointerEvents="none"
         style={[styles.leftEdgeGlow, { opacity: leftEdgeOpacity }]}
       />
 
-      {/* DYNAMIC PARTICLE BUBBLE EMITTER LAYER */}
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      {/* HIGH-DENSITY PARTICLE BUBBLE EMITTER LAYER (Emitting directly from screen edges INWARD towards card) */}
+      <View style={styles.particleContainer} pointerEvents="none">
         {particles.map((p) => {
           const isRight = p.type === "heart";
 
+          // Drift inward towards center card (negative X for right edge, positive X for left edge)
           const translateX = p.anim.interpolate({
             inputRange: [0, 1],
             outputRange: [0, isRight ? -p.driftX : p.driftX],
           });
 
+          // Drift upward like floating bubbles
           const translateY = p.anim.interpolate({
             inputRange: [0, 1],
             outputRange: [0, -p.driftY],
           });
 
           const particleScale = p.anim.interpolate({
-            inputRange: [0, 0.3, 0.7, 1],
-            outputRange: [0.3, p.scale * 1.25, p.scale, 0.4],
+            inputRange: [0, 0.25, 0.7, 1],
+            outputRange: [0.3, p.scale * 1.3, p.scale, 0.4],
           });
 
           const opacity = p.anim.interpolate({
-            inputRange: [0, 0.2, 0.7, 1],
+            inputRange: [0, 0.15, 0.65, 1],
             outputRange: [0, 0.95, 0.85, 0],
           });
 
@@ -564,7 +573,7 @@ export default function CareerSwipeDeck({
               key={p.id}
               style={[
                 styles.particleBase,
-                isRight ? { right: 8 } : { left: 8 },
+                isRight ? { right: -18 } : { left: -18 },
                 {
                   top: `${p.topPct}%`,
                   opacity,
@@ -857,41 +866,48 @@ const styles = StyleSheet.create({
   },
   rightEdgeGlow: {
     position: "absolute",
-    right: -16,
-    top: 0,
-    bottom: 0,
-    width: 36,
-    backgroundColor: "rgba(16, 185, 129, 0.18)",
-    borderLeftWidth: 3,
-    borderLeftColor: "rgba(16, 185, 129, 0.6)",
+    right: -22, // Flushed directly to true screen right boundary (negating parent padding)
+    top: -120,
+    bottom: -120,
+    width: 54,
+    backgroundColor: "rgba(16, 185, 129, 0.22)",
+    borderLeftWidth: 4,
+    borderLeftColor: "rgba(16, 185, 129, 0.75)",
     shadowColor: "#10b981",
-    shadowOffset: { width: -6, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
+    shadowOffset: { width: -12, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
     zIndex: 85,
   },
   leftEdgeGlow: {
     position: "absolute",
-    left: -16,
-    top: 0,
-    bottom: 0,
-    width: 36,
-    backgroundColor: "rgba(239, 68, 68, 0.18)",
-    borderRightWidth: 3,
-    borderRightColor: "rgba(239, 68, 68, 0.6)",
+    left: -22, // Flushed directly to true screen left boundary (negating parent padding)
+    top: -120,
+    bottom: -120,
+    width: 54,
+    backgroundColor: "rgba(239, 68, 68, 0.22)",
+    borderRightWidth: 4,
+    borderRightColor: "rgba(239, 68, 68, 0.75)",
     shadowColor: "#ef4444",
-    shadowOffset: { width: 6, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
+    shadowOffset: { width: 12, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
     zIndex: 85,
+  },
+  particleContainer: {
+    position: "absolute",
+    top: -120,
+    bottom: -120,
+    left: -22,
+    right: -22,
+    zIndex: 88,
   },
   particleBase: {
     position: "absolute",
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 88,
   },
   controlsBar: {
     flexDirection: "row",
