@@ -275,6 +275,43 @@ export default function CareerSwipeDeck({
     extrapolate: "clamp",
   });
 
+  // Screen Edge FX Interpolations
+  const rightEdgeOpacity = activePan.x.interpolate({
+    inputRange: [10, SWIPE_THRESHOLD],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const rightBubbleOffsetY = activePan.x.interpolate({
+    inputRange: [0, SWIPE_THRESHOLD],
+    outputRange: [0, -36],
+    extrapolate: "clamp",
+  });
+
+  const rightBubbleScale = activePan.x.interpolate({
+    inputRange: [0, SWIPE_THRESHOLD * 0.5, SWIPE_THRESHOLD],
+    outputRange: [0.4, 1.25, 0.9],
+    extrapolate: "clamp",
+  });
+
+  const leftEdgeOpacity = activePan.x.interpolate({
+    inputRange: [-SWIPE_THRESHOLD, -10],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const leftBubbleOffsetY = activePan.x.interpolate({
+    inputRange: [-SWIPE_THRESHOLD, 0],
+    outputRange: [-36, 0],
+    extrapolate: "clamp",
+  });
+
+  const leftBubbleScale = activePan.x.interpolate({
+    inputRange: [-SWIPE_THRESHOLD, -SWIPE_THRESHOLD * 0.5, 0],
+    outputRange: [0.9, 1.25, 0.4],
+    extrapolate: "clamp",
+  });
+
   // Stack Depth Physical Card Pile Mechanics (Cards 2 & 3 peek out with distinct rotation angles & offsets)
   const card2Rotate = activePan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
@@ -449,6 +486,54 @@ export default function CareerSwipeDeck({
 
   return (
     <View style={styles.container}>
+      {/* RIGHT SCREEN EDGE FX: Green Edge Glow + Floating Heart Bubbles (Like / Save) */}
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.rightEdgeStrip, { opacity: rightEdgeOpacity }]}
+      >
+        {[60, 160, 260, 360].map((topPos, idx) => (
+          <Animated.View
+            key={`r_bubble_${idx}`}
+            style={[
+              styles.heartBubble,
+              {
+                top: topPos,
+                transform: [
+                  { translateY: rightBubbleOffsetY },
+                  { scale: rightBubbleScale },
+                ],
+              },
+            ]}
+          >
+            <Ionicons name="heart" size={16} color="#10b981" />
+          </Animated.View>
+        ))}
+      </Animated.View>
+
+      {/* LEFT SCREEN EDGE FX: Red Edge Glow + Floating Cross Bubbles (Skip / Pass) */}
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.leftEdgeStrip, { opacity: leftEdgeOpacity }]}
+      >
+        {[60, 160, 260, 360].map((topPos, idx) => (
+          <Animated.View
+            key={`l_bubble_${idx}`}
+            style={[
+              styles.crossBubble,
+              {
+                top: topPos,
+                transform: [
+                  { translateY: leftBubbleOffsetY },
+                  { scale: leftBubbleScale },
+                ],
+              },
+            ]}
+          >
+            <Ionicons name="close" size={18} color="#ef4444" />
+          </Animated.View>
+        ))}
+      </Animated.View>
+
       {/* Outer Card Deck Container with Height Padding for Stack */}
       <View style={styles.deckContainer}>
         {/* Card 3 (Bottom Card in Stack - Peeked right with +3.5deg angle) */}
@@ -507,13 +592,13 @@ export default function CareerSwipeDeck({
             },
           ]}
         >
-          {/* LIKE Badge Overlay */}
+          {/* LIKE Badge Overlay (Placed in TOP-LEFT corner for Right Swipes) */}
           <Animated.View style={[styles.badgeContainer, styles.likeBadge, { opacity: likeOpacity }]}>
             <Ionicons name="heart" size={20} color="#10b981" />
             <Text style={styles.likeText}>{t("career_card_save").toUpperCase()}</Text>
           </Animated.View>
 
-          {/* NOPE Badge Overlay */}
+          {/* NOPE Badge Overlay (Placed in TOP-RIGHT corner for Left Swipes) */}
           <Animated.View style={[styles.badgeContainer, styles.nopeBadge, { opacity: nopeOpacity }]}>
             <Ionicons name="close-circle" size={20} color="#ef4444" />
             <Text style={styles.nopeText}>SKIP</Text>
@@ -698,7 +783,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   likeBadge: {
-    right: 20,
+    left: 20, // Swiping Right (Save) -> Badge appears on TOP-LEFT corner (trailing side)
     borderColor: "#10b981",
     backgroundColor: "rgba(236, 253, 245, 0.95)",
   },
@@ -708,7 +793,7 @@ const styles = StyleSheet.create({
     color: "#10b981",
   },
   nopeBadge: {
-    left: 20,
+    right: 20, // Swiping Left (Skip) -> Badge appears on TOP-RIGHT corner (trailing side)
     borderColor: "#ef4444",
     backgroundColor: "rgba(254, 242, 242, 0.95)",
   },
@@ -716,6 +801,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: fonts.heading,
     color: "#ef4444",
+  },
+  rightEdgeStrip: {
+    position: "absolute",
+    right: -12,
+    top: 10,
+    bottom: 10,
+    width: 28,
+    borderTopRightRadius: 18,
+    borderBottomRightRadius: 18,
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    borderLeftWidth: 3,
+    borderLeftColor: "rgba(16, 185, 129, 0.5)",
+    zIndex: 90,
+  },
+  leftEdgeStrip: {
+    position: "absolute",
+    left: -12,
+    top: 10,
+    bottom: 10,
+    width: 28,
+    borderTopLeftRadius: 18,
+    borderBottomLeftRadius: 18,
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    borderRightWidth: 3,
+    borderRightColor: "rgba(239, 68, 68, 0.5)",
+    zIndex: 90,
+  },
+  heartBubble: {
+    position: "absolute",
+    left: 4,
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  crossBubble: {
+    position: "absolute",
+    right: 4,
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   controlsBar: {
     flexDirection: "row",
