@@ -38,6 +38,17 @@ type HistoryItem = {
   direction: SwipeDirection;
 };
 
+type Particle = {
+  id: string;
+  type: "heart" | "cross";
+  topPct: number;
+  scale: number;
+  rotationDeg: string;
+  driftX: number;
+  driftY: number;
+  anim: Animated.Value;
+};
+
 // Helper: Calculate Holland code match percentage
 function getMatchScore(userType: string | null | undefined, careerCodes: string[] | undefined): number | null {
   if (!userType || !careerCodes || careerCodes.length === 0) return null;
@@ -74,6 +85,10 @@ export default function CareerSwipeDeck({
   const [deck, setDeck] = useState<Career[]>(careers);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
+  // Dynamic particle emitter state for floating bubble icons along full screen edge
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const lastSpawnTime = useRef(0);
+
   // Ref map to store individual Animated.ValueXY for each card ID to eliminate pop-in glitches
   const pansRef = useRef<Record<string, Animated.ValueXY>>({});
   const getPanForCard = (id: string) => {
@@ -90,6 +105,7 @@ export default function CareerSwipeDeck({
     setDeck(careers);
     setHistory([]);
     pansRef.current = {};
+    setParticles([]);
   }, [careersKey]);
 
   // Subtle Idle Floating animation for active top card
@@ -137,6 +153,39 @@ export default function CareerSwipeDeck({
 
   const onToggleSaveRef = useRef(onToggleSave);
   onToggleSaveRef.current = onToggleSave;
+
+  // Dynamic particle spawner logic
+  const spawnParticle = (type: "heart" | "cross") => {
+    const id = Math.random().toString(36).substring(2, 9);
+    const topPct = 5 + Math.random() * 85; // Spawns across entire height of screen edge (5% to 90%)
+    const scale = 0.6 + Math.random() * 0.65; // Size variation (0.6x to 1.25x)
+    const rotationDeg = `${Math.floor(Math.random() * 30 - 15)}deg`; // Slight rotation variation (-15deg to +15deg)
+    const driftX = 25 + Math.random() * 25; // Drift gently inward towards center
+    const driftY = 35 + Math.random() * 25; // Drift gently upward
+    const anim = new Animated.Value(0);
+
+    const newParticle: Particle = {
+      id,
+      type,
+      topPct,
+      scale,
+      rotationDeg,
+      driftX,
+      driftY,
+      anim,
+    };
+
+    setParticles((prev) => [...prev.slice(-18), newParticle]);
+
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 650 + Math.random() * 350,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    }).start(() => {
+      setParticles((prev) => prev.filter((p) => p.id !== id));
+    });
+  };
 
   const resetPosition = () => {
     const targetPan = activePanRef.current;
@@ -196,6 +245,16 @@ export default function CareerSwipeDeck({
       },
       onPanResponderMove: (e, gestureState) => {
         activePanRef.current.setValue({ x: gestureState.dx, y: gestureState.dy });
+
+        // Dynamic particle emission scaling with swipe progress
+        const now = Date.now();
+        const absX = Math.abs(gestureState.dx);
+        const progress = Math.min(1, absX / SWIPE_THRESHOLD);
+
+        if (progress > 0.18 && now - lastSpawnTime.current > Math.max(60, 170 - progress * 110)) {
+          lastSpawnTime.current = now;
+          spawnParticle(gestureState.dx > 0 ? "heart" : "cross");
+        }
       },
       onPanResponderRelease: (_, gestureState) => {
         idleLoopRef.current?.start();
@@ -249,6 +308,7 @@ export default function CareerSwipeDeck({
     setDeck(careers);
     setHistory([]);
     pansRef.current = {};
+    setParticles([]);
   };
 
   // Top Active Card Rotations & Badges based on its dedicated activePan value
@@ -275,40 +335,16 @@ export default function CareerSwipeDeck({
     extrapolate: "clamp",
   });
 
-  // Screen Edge FX Interpolations
+  // Screen Edge Full-Height Glow Interpolations (Disappears gracefully on rest / fly-out)
   const rightEdgeOpacity = activePan.x.interpolate({
-    inputRange: [10, SWIPE_THRESHOLD],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  const rightBubbleOffsetY = activePan.x.interpolate({
-    inputRange: [0, SWIPE_THRESHOLD],
-    outputRange: [0, -36],
-    extrapolate: "clamp",
-  });
-
-  const rightBubbleScale = activePan.x.interpolate({
-    inputRange: [0, SWIPE_THRESHOLD * 0.5, SWIPE_THRESHOLD],
-    outputRange: [0.4, 1.25, 0.9],
+    inputRange: [0, SWIPE_THRESHOLD * 0.4, SWIPE_THRESHOLD, SCREEN_WIDTH * 1.2],
+    outputRange: [0, 0.4, 0.9, 0],
     extrapolate: "clamp",
   });
 
   const leftEdgeOpacity = activePan.x.interpolate({
-    inputRange: [-SWIPE_THRESHOLD, -10],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-
-  const leftBubbleOffsetY = activePan.x.interpolate({
-    inputRange: [-SWIPE_THRESHOLD, 0],
-    outputRange: [-36, 0],
-    extrapolate: "clamp",
-  });
-
-  const leftBubbleScale = activePan.x.interpolate({
-    inputRange: [-SWIPE_THRESHOLD, -SWIPE_THRESHOLD * 0.5, 0],
-    outputRange: [0.9, 1.25, 0.4],
+    inputRange: [-SCREEN_WIDTH * 1.2, -SWIPE_THRESHOLD, -SWIPE_THRESHOLD * 0.4, 0],
+    outputRange: [0, 0.9, 0.4, 0],
     extrapolate: "clamp",
   });
 
@@ -486,53 +522,70 @@ export default function CareerSwipeDeck({
 
   return (
     <View style={styles.container}>
-      {/* RIGHT SCREEN EDGE FX: Green Edge Glow + Floating Heart Bubbles (Like / Save) */}
+      {/* RIGHT FULL-HEIGHT SCREEN EDGE GLOW (Green for Save) */}
       <Animated.View
         pointerEvents="none"
-        style={[styles.rightEdgeStrip, { opacity: rightEdgeOpacity }]}
-      >
-        {[60, 160, 260, 360].map((topPos, idx) => (
-          <Animated.View
-            key={`r_bubble_${idx}`}
-            style={[
-              styles.heartBubble,
-              {
-                top: topPos,
-                transform: [
-                  { translateY: rightBubbleOffsetY },
-                  { scale: rightBubbleScale },
-                ],
-              },
-            ]}
-          >
-            <Ionicons name="heart" size={16} color="#10b981" />
-          </Animated.View>
-        ))}
-      </Animated.View>
+        style={[styles.rightEdgeGlow, { opacity: rightEdgeOpacity }]}
+      />
 
-      {/* LEFT SCREEN EDGE FX: Red Edge Glow + Floating Cross Bubbles (Skip / Pass) */}
+      {/* LEFT FULL-HEIGHT SCREEN EDGE GLOW (Red for Skip) */}
       <Animated.View
         pointerEvents="none"
-        style={[styles.leftEdgeStrip, { opacity: leftEdgeOpacity }]}
-      >
-        {[60, 160, 260, 360].map((topPos, idx) => (
-          <Animated.View
-            key={`l_bubble_${idx}`}
-            style={[
-              styles.crossBubble,
-              {
-                top: topPos,
-                transform: [
-                  { translateY: leftBubbleOffsetY },
-                  { scale: leftBubbleScale },
-                ],
-              },
-            ]}
-          >
-            <Ionicons name="close" size={18} color="#ef4444" />
-          </Animated.View>
-        ))}
-      </Animated.View>
+        style={[styles.leftEdgeGlow, { opacity: leftEdgeOpacity }]}
+      />
+
+      {/* DYNAMIC PARTICLE BUBBLE EMITTER LAYER */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        {particles.map((p) => {
+          const isRight = p.type === "heart";
+
+          const translateX = p.anim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, isRight ? -p.driftX : p.driftX],
+          });
+
+          const translateY = p.anim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, -p.driftY],
+          });
+
+          const particleScale = p.anim.interpolate({
+            inputRange: [0, 0.3, 0.7, 1],
+            outputRange: [0.3, p.scale * 1.25, p.scale, 0.4],
+          });
+
+          const opacity = p.anim.interpolate({
+            inputRange: [0, 0.2, 0.7, 1],
+            outputRange: [0, 0.95, 0.85, 0],
+          });
+
+          return (
+            <Animated.View
+              key={p.id}
+              style={[
+                styles.particleBase,
+                isRight ? { right: 8 } : { left: 8 },
+                {
+                  top: `${p.topPct}%`,
+                  opacity,
+                  transform: [
+                    { translateX },
+                    { translateY },
+                    { scale: particleScale },
+                    { rotate: p.rotationDeg },
+                  ],
+                },
+              ]}
+            >
+              <Ionicons
+                name={isRight ? "heart" : "close"}
+                size={18}
+                color={isRight ? "#10b981" : "#ef4444"}
+              />
+            </Animated.View>
+          );
+        })}
+      </View>
 
       {/* Outer Card Deck Container with Height Padding for Stack */}
       <View style={styles.deckContainer}>
@@ -802,47 +855,43 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     color: "#ef4444",
   },
-  rightEdgeStrip: {
+  rightEdgeGlow: {
     position: "absolute",
-    right: -12,
-    top: 10,
-    bottom: 10,
-    width: 28,
-    borderTopRightRadius: 18,
-    borderBottomRightRadius: 18,
-    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    right: -16,
+    top: 0,
+    bottom: 0,
+    width: 36,
+    backgroundColor: "rgba(16, 185, 129, 0.18)",
     borderLeftWidth: 3,
-    borderLeftColor: "rgba(16, 185, 129, 0.5)",
-    zIndex: 90,
+    borderLeftColor: "rgba(16, 185, 129, 0.6)",
+    shadowColor: "#10b981",
+    shadowOffset: { width: -6, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    zIndex: 85,
   },
-  leftEdgeStrip: {
+  leftEdgeGlow: {
     position: "absolute",
-    left: -12,
-    top: 10,
-    bottom: 10,
-    width: 28,
-    borderTopLeftRadius: 18,
-    borderBottomLeftRadius: 18,
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    left: -16,
+    top: 0,
+    bottom: 0,
+    width: 36,
+    backgroundColor: "rgba(239, 68, 68, 0.18)",
     borderRightWidth: 3,
-    borderRightColor: "rgba(239, 68, 68, 0.5)",
-    zIndex: 90,
+    borderRightColor: "rgba(239, 68, 68, 0.6)",
+    shadowColor: "#ef4444",
+    shadowOffset: { width: 6, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    zIndex: 85,
   },
-  heartBubble: {
+  particleBase: {
     position: "absolute",
-    left: 4,
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
     alignItems: "center",
     justifyContent: "center",
-  },
-  crossBubble: {
-    position: "absolute",
-    right: 4,
-    width: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
+    zIndex: 88,
   },
   controlsBar: {
     flexDirection: "row",
